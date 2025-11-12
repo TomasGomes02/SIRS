@@ -6,79 +6,142 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.security.Key;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
+import javax.crypto.spec.IvParameterSpec;
 import org.junit.jupiter.api.Test;
 
 public class SymCryptoTest {
-  /** Plain text to cipher. */
-  private final String plainText = "This is the plain text!";
+  /**
+   * Plain text with repeated pattern (32 'a' characters = two 16-byte AES
+   * blocks)
+   */
+  private final String plainTextWithPattern =
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
   /** Plain text bytes. */
-  private final byte[] plainBytes = plainText.getBytes();
+  private final byte[] plainBytes = plainTextWithPattern.getBytes();
 
   /** Symmetric cryptography algorithm. */
   private static final String SYM_ALGO = "AES";
   /** Symmetric algorithm key size. */
   private static final int SYM_KEY_SIZE = 128;
-  /**
-   * Symmetric cipher: combination of algorithm, block processing, and padding.
-   */
-  // private static final String SYM_CIPHER = "AES/ECB/PKCS5Padding";
 
-  private static final String SYM_CIPHER = "AES/CBC/PKCS5Padding";
+  /** ECB Cipher configuration. */
+  private static final String SYM_CIPHER_ECB = "AES/ECB/PKCS5Padding";
+  /** CBC Cipher configuration. */
+  private static final String SYM_CIPHER_CBC = "AES/CBC/PKCS5Padding";
+
   /**
-   * Secret key cryptography test.
-   *
-   * @throws Exception because test is not concerned with exception handling
+   * Test AES encryption/decryption using ECB mode with repeated pattern.
+   * ECB mode will show identical ciphertext blocks for identical plaintext
+   * blocks.
    */
   @Test
-  public void testSymCrypto() throws Exception {
-    System.out.print("TEST '");
-    System.out.print(SYM_CIPHER);
-    System.out.println("'");
+  public void testECBRepeatedPattern() throws Exception {
+    System.out.println("=== TEST ECB MODE WITH REPEATED PATTERN ===");
+    System.out.println("Cipher: " + SYM_CIPHER_ECB);
+    System.out.println("Plaintext: \"" + plainTextWithPattern + "\"");
+    System.out.println("Plaintext bytes: " + printHexBinary(plainBytes));
+    System.out.println();
 
-    System.out.println("Text:");
-    System.out.println(plainText);
-    System.out.println("Bytes:");
-    System.out.println(printHexBinary(plainBytes));
-
-    // get a AES private key
-    System.out.println("Generating AES key...");
+    // Generate AES key
     KeyGenerator keyGen = KeyGenerator.getInstance(SYM_ALGO);
     keyGen.init(SYM_KEY_SIZE);
     Key key = keyGen.generateKey();
-    System.out.print("Key: ");
-    System.out.println(printHexBinary(key.getEncoded()));
+    System.out.println("Key: " + printHexBinary(key.getEncoded()));
+    System.out.println();
 
-    // get a AES cipher object and print the provider
-    Cipher cipher = Cipher.getInstance(SYM_CIPHER);
-    System.out.println(cipher.getProvider().getInfo());
+    // Get ECB cipher object (no IV needed)
+    Cipher cipher = Cipher.getInstance(SYM_CIPHER_ECB);
+    System.out.println("Provider: " + cipher.getProvider().getInfo());
+    System.out.println();
 
-    // encrypt using the key and the plain text
-    System.out.println("Ciphering...");
+    // Encrypt
+    System.out.println("ENCRYPTING...");
     cipher.init(Cipher.ENCRYPT_MODE, key);
-    // IV parameter
-    IvParameterSpec spec =
-        cipher.getParameters().getParameterSpec(IvParameterSpec.class);
-
-    byte[] specBytes = spec.getIV();
     byte[] cipherBytes = cipher.doFinal(plainBytes);
 
-    System.out.print("Result: ");
-    System.out.println(printHexBinary(cipherBytes));
-
-    // decipher the cipher text using the same key
-    System.out.println("Deciphering...");
-    cipher.init(Cipher.DECRYPT_MODE, key);
-    byte[] newPlainBytes = cipher.doFinal(cipherBytes);
-    System.out.print("Result: ");
-    System.out.println(printHexBinary(newPlainBytes));
-
-    System.out.println("Text:");
-    String newPlainText = new String(newPlainBytes);
-    System.out.println(newPlainText);
-
-    assertEquals(plainText, newPlainText);
-
+    System.out.println("Ciphertext: " + printHexBinary(cipherBytes));
     System.out.println();
+    System.out.println(
+        ">>> SECURITY ISSUE: With ECB, identical plaintext blocks produce");
+    System.out.println(">>> identical ciphertext blocks! Notice the " +
+                       "repeating patterns above.");
+    System.out.println();
+
+    // Decrypt
+    System.out.println("DECRYPTING...");
+    cipher.init(Cipher.DECRYPT_MODE, key);
+    byte[] decryptedBytes = cipher.doFinal(cipherBytes);
+
+    System.out.println("Decrypted: " + new String(decryptedBytes));
+    System.out.println();
+
+    // Verify
+    assertEquals(plainTextWithPattern, new String(decryptedBytes));
+    System.out.println("✓ ECB test passed");
+    System.out.println();
+  }
+
+  /**
+   * Test AES encryption/decryption using CBC mode with repeated pattern.
+   * CBC mode will obfuscate patterns by XORing each block with the previous
+   * ciphertext block.
+   */
+  @Test
+  public void testCBCRepeatedPattern() throws Exception {
+    System.out.println("=== TEST CBC MODE WITH REPEATED PATTERN ===");
+    System.out.println("Cipher: " + SYM_CIPHER_CBC);
+    System.out.println("Plaintext: \"" + plainTextWithPattern + "\"");
+    System.out.println("Plaintext bytes: " + printHexBinary(plainBytes));
+    System.out.println();
+
+    // Generate AES key
+    KeyGenerator keyGen = KeyGenerator.getInstance(SYM_ALGO);
+    keyGen.init(SYM_KEY_SIZE);
+    Key key = keyGen.generateKey();
+    System.out.println("Key: " + printHexBinary(key.getEncoded()));
+    System.out.println();
+
+    // Get CBC cipher object
+    Cipher cipher = Cipher.getInstance(SYM_CIPHER_CBC);
+    System.out.println("Provider: " + cipher.getProvider().getInfo());
+    System.out.println();
+
+    // Generate random IV for CBC mode
+    cipher.init(Cipher.ENCRYPT_MODE, key);
+    IvParameterSpec ivSpec =
+        cipher.getParameters().getParameterSpec(IvParameterSpec.class);
+    System.out.println("Generated IV: " + printHexBinary(ivSpec.getIV()));
+    System.out.println();
+    System.out.println(
+        ">>> SECURITY: A random IV is generated for each encryption session.");
+    System.out.println(
+        ">>> This IV must be stored/sent with the ciphertext for decryption.");
+    System.out.println();
+
+    // Encrypt
+    System.out.println("ENCRYPTING...");
+    cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
+    byte[] cipherBytes = cipher.doFinal(plainBytes);
+
+    System.out.println("Ciphertext: " + printHexBinary(cipherBytes));
+    System.out.println();
+    System.out.println(
+        ">>> ADVANTAGE: Even with identical plaintext blocks, the ciphertext");
+    System.out.println(">>> appears random with no repeating patterns! " +
+                       "Patterns are obfuscated.");
+    System.out.println();
+
+    // Decrypt (must use the same IV)
+    System.out.println("DECRYPTING...");
+    cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
+    byte[] decryptedBytes = cipher.doFinal(cipherBytes);
+
+    System.out.println("Decrypted: " + new String(decryptedBytes));
+    System.out.println();
+
+    // Verify
+    assertEquals(plainTextWithPattern, new String(decryptedBytes));
+    System.out.println("✓ CBC test passed");
     System.out.println();
   }
 }
