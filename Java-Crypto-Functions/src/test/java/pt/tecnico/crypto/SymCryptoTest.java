@@ -58,8 +58,10 @@ public class SymCryptoTest {
     // IV parameter
     IvParameterSpec spec =
         cipher.getParameters().getParameterSpec(IvParameterSpec.class);
-    byte[] cipherBytes = spec.getIV();
-    // byte[] cipherBytes = cipher.doFinal(plainBytes);
+
+    byte[] specBytes = spec.getIV();
+    byte[] cipherBytes = cipher.doFinal(plainBytes);
+
     System.out.print("Result: ");
     System.out.println(printHexBinary(cipherBytes));
 
