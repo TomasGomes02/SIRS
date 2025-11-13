@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="pt.tecnico.crypto.AsymCryptoTest" time="0.517" tests="2" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="pt.tecnico.crypto.XMLCryptoTest" time="0.148" tests="1" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="22"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -12,9 +12,9 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="US"/>
     <property name="sun.boot.library.path" value="/opt/temurin-22/lib"/>
-    <property name="sun.java.command" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire/surefirebooter-20251113224331023_3.jar /home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire 2025-11-13T22-43-30_934-jvmRun1 surefire-20251113224331023_1tmp surefire_0-20251113224331023_2tmp"/>
+    <property name="sun.java.command" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire/surefirebooter-20251113224249887_3.jar /home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire 2025-11-13T22-42-49_793-jvmRun1 surefire-20251113224249887_1tmp surefire_0-20251113224249887_2tmp"/>
     <property name="jdk.debug" value="release"/>
-    <property name="test" value="AsymCryptoTest"/>
+    <property name="test" value="XMLCryptoTest"/>
     <property name="surefire.test.class.path" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/test-classes:/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/classes:/home/tomas/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.6.0/junit-jupiter-engine-5.6.0.jar:/home/tomas/.m2/repository/org/apiguardian/apiguardian-api/1.1.0/apiguardian-api-1.1.0.jar:/home/tomas/.m2/repository/org/junit/platform/junit-platform-engine/1.6.0/junit-platform-engine-1.6.0.jar:/home/tomas/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/home/tomas/.m2/repository/org/junit/platform/junit-platform-commons/1.6.0/junit-platform-commons-1.6.0.jar:/home/tomas/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.6.0/junit-jupiter-api-5.6.0.jar:/home/tomas/.m2/repository/javax/annotation/javax.annotation-api/1.3.2/javax.annotation-api-1.3.2.jar:/home/tomas/.m2/repository/javax/xml/bind/jaxb-api/2.3.0/jaxb-api-2.3.0.jar:"/>
     <property name="sun.cpu.endian" value="little"/>
     <property name="user.home" value="/home/tomas"/>
@@ -28,7 +28,7 @@
     <property name="line.separator" value="&#10;"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
-    <property name="surefire.real.class.path" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire/surefirebooter-20251113224331023_3.jar"/>
+    <property name="surefire.real.class.path" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire/surefirebooter-20251113224249887_3.jar"/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="22.0.2+9"/>
     <property name="user.name" value="tomas"/>
@@ -55,50 +55,32 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="66.0"/>
   </properties>
-  <testcase name="testCipherPublicDecipherPrivate" classname="pt.tecnico.crypto.AsymCryptoTest" time="0.436">
-    <system-out><![CDATA[TEST 'RSA/ECB/PKCS1Padding' cipher with public, decipher with private
-Text
-This is the plain text!
-Bytes:
-546869732069732074686520706C61696E207465787421
-Key pair generated in 374.278 milliseconds
-
-Ciphering with public key...
+  <testcase name="testXMLCrypto" classname="pt.tecnico.crypto.XMLCryptoTest" time="0.133">
+    <system-out><![CDATA[TEST 'AES/ECB/PKCS5Padding' with XML (textual) data
+XML text:
+<message><body>There and Back Again</body></message>
+Parsing XML document from string bytes...
+XML document contents:
+<message><body>There and Back Again</body></message>
+Body text:
+There and Back Again
+Bytes
+546865726520616E64204261636B20416761696E
 Ciphered bytes:
-65481C95C799A40648ED1104751B2D5E4E00D8CB903C15FA06CB83038AC6BBD6ADF8BF56F0B53871C5F3F20F76F08CCAA034DDEFFAB459C3AC6071BDEC3E610CABE02D688A6F38A8F290F37358FB419A52D63371A1AF5AB4CFFD2AAAC7C55009456A85FDF7D4E2FD1042FCF7DBC88306D1ADE36A3AB949D6BF4A3281213365E2E9D449B77E876F77C47561D0CC0914ABDF5E8B07F6EF8EBA4E7F80956C9B8E43F22FEB845455F4A3824F8243B3F0133CD40AF33492B3FCB2DA3A4B16AA2BD059BB97BD28BBE3BC795373B797608DEF77E0595A3F643FB6C62716D46CE00D6318A21E9CCDF12488CE517452D61A63544C6FC1BA92CFE789BC49651C3A7FAB47EB
-Encryption completed in 0.721 milliseconds
-
-Deciphering with private key...
+DE23FE30A0B83FA678A1DC59BD65BD6D5FC302BACD964638788EED57F00AB753
+Ciphered bytes in Base64:
+3iP+MKC4P6Z4odxZvWW9bV/DArrNlkY4eI7tV/AKt1M=
+XML document with cipher body:
+<message><cipherBody>3iP+MKC4P6Z4odxZvWW9bV/DArrNlkY4eI7tV/AKt1M=</cipherBody></message>
+Cipher body text:
+3iP+MKC4P6Z4odxZvWW9bV/DArrNlkY4eI7tV/AKt1M=
+Ciphered bytes: DE23FE30A0B83FA678A1DC59BD65BD6D5FC302BACD964638788EED57F00AB753
 Deciphered bytes:
-546869732069732074686520706C61696E207465787421
-Decryption completed in 3.490 milliseconds
-
-Text:
-This is the plain text!
-
-
-]]></system-out>
-  </testcase>
-  <testcase name="testCipherPrivateDecipherPublic" classname="pt.tecnico.crypto.AsymCryptoTest" time="0.065">
-    <system-out><![CDATA[TEST 'RSA/ECB/PKCS1Padding' cipher with private, decipher with public
-Text:
-This is the plain text!
-Bytes:
-546869732069732074686520706C61696E207465787421
-Key pair generated in 54.701 milliseconds
-
-Ciphering with private key...
-Ciphered bytes:
-4E868DF6827AF4E1F9E96140CDFE53F646FDCC7DC0E5E21EF2D635CE582A97B69F8EA03836F4FF63015086BEBB65E13354C723C4532F1C070EC026CE4E7A9F90943E86A99F107245A44026CC97C054B8D5F684C7100FE802B08A8CEAE32FF36B40D389F36BE6D4F373C69DD5058129E3D81CC6DC9EE7663D75F5C883C38520BADA7F9ED5BA961C385179A69732BCF6AF1E45C2BC4E19490EAEF18E16BAE6ED83E4F0791DBEA2B8AFE5763E0643B52D29A479BBAE65C63B53DB346928D3F801E4C51684CFA13F47B298F998A1843C4F1BE938FC4C7406518F04C7A0C45FCBEADF7E5F17913F8865A37B7991B8BCAE2E0BD098C4C9B522D154EC2F509A0E237308
-Encryption completed in 6.049 milliseconds
-
-Deciphering with public key...
-Deciphered bytes:
-546869732069732074686520706C61696E207465787421
-Decryption completed in 0.107 milliseconds
-
-Text:
-This is the plain text!
+546865726520616E64204261636B20416761696E
+Body text:
+There and Back Again
+XML document with new body:
+<message><body>There and Back Again</body></message>
 
 
 ]]></system-out>
