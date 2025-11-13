@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="pt.tecnico.crypto.MACTest" time="0.085" tests="2" errors="0" skipped="0" failures="0">
+<testsuite name="pt.tecnico.crypto.MACTest" time="0.173" tests="3" errors="0" skipped="0" failures="0">
   <properties>
     <property name="jansi.mode" value="force"/>
     <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
@@ -58,6 +58,7 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="sun.cpu.endian" value="little"/>
   </properties>
-  <testcase name="pt.tecnico.crypto.MACTest.testSignatureStepByStep" classname="pt.tecnico.crypto.MACTest" time="0.084"/>
-  <testcase name="pt.tecnico.crypto.MACTest.testMACObject" classname="pt.tecnico.crypto.MACTest" time="0.001"/>
+  <testcase name="pt.tecnico.crypto.MACTest.testMACWithNonceFreshness" classname="pt.tecnico.crypto.MACTest" time="0.16"/>
+  <testcase name="pt.tecnico.crypto.MACTest.testMACObject" classname="pt.tecnico.crypto.MACTest" time="0.005"/>
+  <testcase name="pt.tecnico.crypto.MACTest.testSignatureStepByStep" classname="pt.tecnico.crypto.MACTest" time="0.008"/>
 </testsuite>

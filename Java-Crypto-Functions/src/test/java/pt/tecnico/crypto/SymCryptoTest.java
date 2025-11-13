@@ -10,6 +10,7 @@ import javax.crypto.spec.IvParameterSpec;
 import org.junit.jupiter.api.Test;
 
 public class SymCryptoTest {
+
   /**
    * Plain text with repeated pattern (32 'a' characters = two 16-byte AES
    * blocks)
@@ -42,11 +43,20 @@ public class SymCryptoTest {
     System.out.println("Plaintext bytes: " + printHexBinary(plainBytes));
     System.out.println();
 
+    // Start counting time for key generation
+    long startingKeyGenerationTime = System.nanoTime();
+
     // Generate AES key
     KeyGenerator keyGen = KeyGenerator.getInstance(SYM_ALGO);
     keyGen.init(SYM_KEY_SIZE);
     Key key = keyGen.generateKey();
     System.out.println("Key: " + printHexBinary(key.getEncoded()));
+    System.out.println();
+
+    long endingKeyGenerationTime = System.nanoTime();
+    System.out.printf("Key generated in %.3f milliseconds%n",
+                      (endingKeyGenerationTime - startingKeyGenerationTime) /
+                          1_000_000.0);
     System.out.println();
 
     // Get ECB cipher object (no IV needed)
@@ -55,29 +65,36 @@ public class SymCryptoTest {
     System.out.println();
 
     // Encrypt
+    long startingEncryptionTime = System.nanoTime();
     System.out.println("ENCRYPTING...");
     cipher.init(Cipher.ENCRYPT_MODE, key);
     byte[] cipherBytes = cipher.doFinal(plainBytes);
+    long endingEncryptionTime = System.nanoTime();
 
     System.out.println("Ciphertext: " + printHexBinary(cipherBytes));
     System.out.println();
-    System.out.println(
-        ">>> SECURITY ISSUE: With ECB, identical plaintext blocks produce");
-    System.out.println(">>> identical ciphertext blocks! Notice the " +
-                       "repeating patterns above.");
+    System.out.printf("Encryption done in %.3f milliseconds%n",
+                      (endingEncryptionTime - startingEncryptionTime) /
+                          1_000_000.0);
     System.out.println();
 
     // Decrypt
     System.out.println("DECRYPTING...");
+    long startingDecryptionTime = System.nanoTime();
     cipher.init(Cipher.DECRYPT_MODE, key);
     byte[] decryptedBytes = cipher.doFinal(cipherBytes);
+    long endingDecryptionTime = System.nanoTime();
 
     System.out.println("Decrypted: " + new String(decryptedBytes));
+    System.out.println();
+    System.out.printf("Decryption done in %.3f milliseconds%n",
+                      (endingDecryptionTime - startingDecryptionTime) /
+                          1_000_000.0);
     System.out.println();
 
     // Verify
     assertEquals(plainTextWithPattern, new String(decryptedBytes));
-    System.out.println("✓ ECB test passed");
+    System.out.println("ECB test passed");
     System.out.println();
   }
 
@@ -94,11 +111,20 @@ public class SymCryptoTest {
     System.out.println("Plaintext bytes: " + printHexBinary(plainBytes));
     System.out.println();
 
+    // Start counting time for key generation
+    long startingKeyGenerationTime = System.nanoTime();
+
     // Generate AES key
     KeyGenerator keyGen = KeyGenerator.getInstance(SYM_ALGO);
     keyGen.init(SYM_KEY_SIZE);
     Key key = keyGen.generateKey();
     System.out.println("Key: " + printHexBinary(key.getEncoded()));
+    System.out.println();
+
+    long endingKeyGenerationTime = System.nanoTime();
+    System.out.printf("Key generated in %.3f milliseconds%n",
+                      (endingKeyGenerationTime - startingKeyGenerationTime) /
+                          1_000_000.0);
     System.out.println();
 
     // Get CBC cipher object
@@ -119,9 +145,11 @@ public class SymCryptoTest {
     System.out.println();
 
     // Encrypt
+    long startingEncryptionTime = System.nanoTime();
     System.out.println("ENCRYPTING...");
     cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
     byte[] cipherBytes = cipher.doFinal(plainBytes);
+    long endingEncryptionTime = System.nanoTime();
 
     System.out.println("Ciphertext: " + printHexBinary(cipherBytes));
     System.out.println();
@@ -130,18 +158,28 @@ public class SymCryptoTest {
     System.out.println(">>> appears random with no repeating patterns! " +
                        "Patterns are obfuscated.");
     System.out.println();
+    System.out.printf("Encryption done in %.3f milliseconds%n",
+                      (endingEncryptionTime - startingEncryptionTime) /
+                          1_000_000.0);
+    System.out.println();
 
-    // Decrypt (must use the same IV)
+    // Decrypt
     System.out.println("DECRYPTING...");
+    long startingDecryptionTime = System.nanoTime();
     cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
     byte[] decryptedBytes = cipher.doFinal(cipherBytes);
+    long endingDecryptionTime = System.nanoTime();
 
     System.out.println("Decrypted: " + new String(decryptedBytes));
+    System.out.println();
+    System.out.printf("Decryption done in %.3f milliseconds%n",
+                      (endingDecryptionTime - startingDecryptionTime) /
+                          1_000_000.0);
     System.out.println();
 
     // Verify
     assertEquals(plainTextWithPattern, new String(decryptedBytes));
-    System.out.println("✓ CBC test passed");
+    System.out.println("CBC test passed");
     System.out.println();
   }
 }

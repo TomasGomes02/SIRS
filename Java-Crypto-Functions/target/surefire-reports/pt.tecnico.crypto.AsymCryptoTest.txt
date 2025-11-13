@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: pt.tecnico.crypto.AsymCryptoTest
 -------------------------------------------------------------------------------
-Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.337 sec - in pt.tecnico.crypto.AsymCryptoTest
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.525 s -- in pt.tecnico.crypto.AsymCryptoTest
