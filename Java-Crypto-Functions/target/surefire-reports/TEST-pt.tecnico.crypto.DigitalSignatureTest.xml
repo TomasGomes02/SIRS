@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="pt.tecnico.crypto.AsymCryptoTest" time="0.749" tests="2" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="pt.tecnico.crypto.DigitalSignatureTest" time="0.412" tests="2" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="22"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -54,52 +54,34 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="66.0"/>
   </properties>
-  <testcase name="testCipherPublicDecipherPrivate" classname="pt.tecnico.crypto.AsymCryptoTest" time="0.551">
-    <system-out><![CDATA[TEST 'RSA/ECB/PKCS1Padding' cipher with public, decipher with private
-Text
+  <testcase name="testSignatureStepByStep" classname="pt.tecnico.crypto.DigitalSignatureTest" time="0.274">
+    <system-out><![CDATA[TEST step-by-step digital signature with cipher 'RSA/ECB/PKCS1Padding' and digest 'SHA-256'
+Text:
 This is the plain text!
 Bytes:
 546869732069732074686520706C61696E207465787421
-Key pair generated in 462.066 milliseconds
-
-Ciphering with public key...
-Ciphered bytes:
-8B6DD88AF1A50A85A9F02B8186866750D2188150DE5331479F6593410FC3B38BA13C921F25A63DF5F0D408D71E9E2D57775483F09797AE01D1CC07A581C08FE44DCCF4123E126D401AF5D731A306F4215547B92019F211A3E0F177279AE203EC7A359DF7AD720A41CEED0663DEC879A991EB2FADA5057973C80BA022058D4FE6BDD04AB9A4CFB45906EB06A1E708FAD868DB469C013B74E3ACC5819AF0427E5D559AF2DC01E3798D2AFF7985B2345EEDC905069308D4CE3FA853C5B25214E601C7948429A02D0033940E27F31AA60E5DBD67A1899E7FA21B1FC4178EA087F512D6904F9182685C2D9A072EF292BE44F1A6478012686A26AEF68672FF8425D569
-Encryption completed in 1.625 milliseconds
-
-Deciphering with private key...
-Deciphered bytes:
-546869732069732074686520706C61696E207465787421
-Decryption completed in 4.826 milliseconds
-
-Text:
-This is the plain text!
-
-
+Signing...
+Digest:
+491E0B645F6D596B76529D2380B1BD96F5A1F7B83B51E64F49FD634D74CD7D15
+Cipher digest:
+4912F28A9E2B5E16B2CF2A38F6879F2D7CF9840AC5B91C1D06D001687A4CC652766AE3C41116A769C71E2B12CC86C1E5DD5587307DE1E435A48285CAB3DEB7CAB1501B22D44FDE38034D15284EBB7D7512C21250FB46331E0EF0A0157242EC8246B425E1779866F6BC7DC3B9C6DC4B5DE8A71C12C64148D76647D8BCE44D73A674390F5A356513C3103A355FE4CBD48F02E472172D40857EFA397E8EE80F4B0FFE241640AAB676E4E4CDAD7A5D4BDA95950C4B0B86034794B56B56236FC3CB0ECF29A5658A4E13C6215449AFC54C9CD23BB7C7AB85D41AEF1EF32D035C9E9AFBE1A2AB3A978EF59BC35B296131704A6DD3CB708420637236760C1055ABD16A5D
+Verifying...
+New digest:
+491E0B645F6D596B76529D2380B1BD96F5A1F7B83B51E64F49FD634D74CD7D15
+Deciphered digest:
+491E0B645F6D596B76529D2380B1BD96F5A1F7B83B51E64F49FD634D74CD7D15
+Signature is right
 ]]></system-out>
   </testcase>
-  <testcase name="testCipherPrivateDecipherPublic" classname="pt.tecnico.crypto.AsymCryptoTest" time="0.169">
-    <system-out><![CDATA[TEST 'RSA/ECB/PKCS1Padding' cipher with private, decipher with public
+  <testcase name="testSignatureObject" classname="pt.tecnico.crypto.DigitalSignatureTest" time="0.136">
+    <system-out><![CDATA[TEST 'SHA256withRSA' digital signature
 Text:
 This is the plain text!
 Bytes:
 546869732069732074686520706C61696E207465787421
-Key pair generated in 159.924 milliseconds
-
-Ciphering with private key...
-Ciphered bytes:
-160870D6A20F2D4EBEA76D27FDEB558EEEFE95A6F7E2CFE0A2375F8E5FED21FE4465BE0C5F19DC1290773B1DE1B3BB98BA742BA21E1FAB363683ABB7468D9FCB1B26B3BDDBE170BD0E53185C42F8FED92937310DF36E9D52F87826A4EA0C729036893B5F9DF6D15A56E340638860DB69C202CF88F418CB2A205217D04095CD18DFCF1D768003B3BE8EB22300BE8CE4B9C72F6D816062D07E0EAEFF04D8881D73E4E5E9F19FB175FF1F00391349F01498DFF8260E5AD824CFCC70861F61D60DAFC87AAE0922428B898BB9A73A4D925FD2D59148130BCB8A8A2BD30F178AC6EED35F00602233CF61F2BF3EFB5D6500743C2DCA805E49C75EDC2C5B36029B100BE3
-Encryption completed in 3.312 milliseconds
-
-Deciphering with public key...
-Deciphered bytes:
-546869732069732074686520706C61696E207465787421
-Decryption completed in 0.178 milliseconds
-
-Text:
-This is the plain text!
-
-
+Signing...
+Verifying...
+Signature is right
 ]]></system-out>
   </testcase>
 </testsuite>

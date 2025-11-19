@@ -1,7 +1,7 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0 " xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance "
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0  http://maven.apache.org/maven-v4_0_0.xsd ">
 	<modelVersion>4.0.0</modelVersion>
-	<!-- http://maven.apache.org/pom.html#Quick_Overview -->
+	<!-- http://maven.apache.org/pom.html#Quick_Overview  -->
 
 	<groupId>pt.tecnico.sirs</groupId>
 	<artifactId>java-crypto</artifactId>
@@ -33,7 +33,7 @@
 	</properties>
 
 	<dependencies>
-		<!-- https://mvnrepository.com/artifact/javax.annotation/javax.annotation-api
+		<!-- https://mvnrepository.com/artifact/javax.annotation/javax.annotation-api 
 		explicitly required since Java 9 -->
 		<dependency>
 			<groupId>javax.annotation</groupId>
@@ -158,6 +158,14 @@
 						<program>
 							<mainClass>pt.ulisboa.tecnico.meic.sirs.RSAKeyGenerator</mainClass>
 							<name>rsa-key-gen</name>
+						</program>
+						<program>
+							<mainClass>pt.ulisboa.tecnico.meic.sirs.ImageRSACipher</mainClass>
+							<name>image-rsa-cipher</name>
+						</program>
+						<program>
+							<mainClass>pt.ulisboa.tecnico.meic.sirs.ImageRSADecipher</mainClass>
+							<name>image-rsa-decipher</name>
 						</program>
 					</programs>
 				</configuration>

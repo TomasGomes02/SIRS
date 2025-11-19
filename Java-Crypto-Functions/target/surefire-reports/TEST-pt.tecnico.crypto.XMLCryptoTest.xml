@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="pt.tecnico.crypto.XMLCryptoTest" time="0.148" tests="1" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="pt.tecnico.crypto.XMLCryptoTest" time="0.115" tests="1" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="22"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -12,9 +12,8 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="US"/>
     <property name="sun.boot.library.path" value="/opt/temurin-22/lib"/>
-    <property name="sun.java.command" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire/surefirebooter-20251113224249887_3.jar /home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire 2025-11-13T22-42-49_793-jvmRun1 surefire-20251113224249887_1tmp surefire_0-20251113224249887_2tmp"/>
+    <property name="sun.java.command" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire/surefirebooter-20251119091005276_3.jar /home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire 2025-11-19T09-10-05_167-jvmRun1 surefire-20251119091005276_1tmp surefire_0-20251119091005276_2tmp"/>
     <property name="jdk.debug" value="release"/>
-    <property name="test" value="XMLCryptoTest"/>
     <property name="surefire.test.class.path" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/test-classes:/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/classes:/home/tomas/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.6.0/junit-jupiter-engine-5.6.0.jar:/home/tomas/.m2/repository/org/apiguardian/apiguardian-api/1.1.0/apiguardian-api-1.1.0.jar:/home/tomas/.m2/repository/org/junit/platform/junit-platform-engine/1.6.0/junit-platform-engine-1.6.0.jar:/home/tomas/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/home/tomas/.m2/repository/org/junit/platform/junit-platform-commons/1.6.0/junit-platform-commons-1.6.0.jar:/home/tomas/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.6.0/junit-jupiter-api-5.6.0.jar:/home/tomas/.m2/repository/javax/annotation/javax.annotation-api/1.3.2/javax.annotation-api-1.3.2.jar:/home/tomas/.m2/repository/javax/xml/bind/jaxb-api/2.3.0/jaxb-api-2.3.0.jar:"/>
     <property name="sun.cpu.endian" value="little"/>
     <property name="user.home" value="/home/tomas"/>
@@ -28,13 +27,13 @@
     <property name="line.separator" value="&#10;"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
-    <property name="surefire.real.class.path" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire/surefirebooter-20251113224249887_3.jar"/>
+    <property name="surefire.real.class.path" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire/surefirebooter-20251119091005276_3.jar"/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="22.0.2+9"/>
     <property name="user.name" value="tomas"/>
     <property name="stdout.encoding" value="UTF-8"/>
     <property name="path.separator" value=":"/>
-    <property name="os.version" value="6.17.7-arch1-1"/>
+    <property name="os.version" value="6.17.8-arch1-1"/>
     <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
     <property name="file.encoding" value="UTF-8"/>
     <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
@@ -55,7 +54,7 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="66.0"/>
   </properties>
-  <testcase name="testXMLCrypto" classname="pt.tecnico.crypto.XMLCryptoTest" time="0.133">
+  <testcase name="testXMLCrypto" classname="pt.tecnico.crypto.XMLCryptoTest" time="0.114">
     <system-out><![CDATA[TEST 'AES/ECB/PKCS5Padding' with XML (textual) data
 XML text:
 <message><body>There and Back Again</body></message>
@@ -67,14 +66,14 @@ There and Back Again
 Bytes
 546865726520616E64204261636B20416761696E
 Ciphered bytes:
-DE23FE30A0B83FA678A1DC59BD65BD6D5FC302BACD964638788EED57F00AB753
+1DCEF75667D92AC8D2D1F7AC3817626B75A916A6A5594799A877111E835A126A
 Ciphered bytes in Base64:
-3iP+MKC4P6Z4odxZvWW9bV/DArrNlkY4eI7tV/AKt1M=
+Hc73VmfZKsjS0fesOBdia3WpFqalWUeZqHcRHoNaEmo=
 XML document with cipher body:
-<message><cipherBody>3iP+MKC4P6Z4odxZvWW9bV/DArrNlkY4eI7tV/AKt1M=</cipherBody></message>
+<message><cipherBody>Hc73VmfZKsjS0fesOBdia3WpFqalWUeZqHcRHoNaEmo=</cipherBody></message>
 Cipher body text:
-3iP+MKC4P6Z4odxZvWW9bV/DArrNlkY4eI7tV/AKt1M=
-Ciphered bytes: DE23FE30A0B83FA678A1DC59BD65BD6D5FC302BACD964638788EED57F00AB753
+Hc73VmfZKsjS0fesOBdia3WpFqalWUeZqHcRHoNaEmo=
+Ciphered bytes: 1DCEF75667D92AC8D2D1F7AC3817626B75A916A6A5594799A877111E835A126A
 Deciphered bytes:
 546865726520616E64204261636B20416761696E
 Body text:

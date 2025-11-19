@@ -1,64 +1,119 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="pt.tecnico.crypto.MACTest" time="0.173" tests="3" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="pt.tecnico.crypto.MACTest" time="0.031" tests="3" errors="0" skipped="0" failures="0">
   <properties>
-    <property name="jansi.mode" value="force"/>
-    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
-    <property name="java.vm.version" value="21.0.8+9-Debian-1"/>
-    <property name="sun.boot.library.path" value="/usr/lib/jvm/java-21-openjdk-amd64/lib"/>
-    <property name="maven.multiModuleProjectDirectory" value="/mnt/hostfiles/P2/SIRS/Labs/Java-Crypto-Functions"/>
-    <property name="java.vm.vendor" value="Debian"/>
-    <property name="java.vendor.url" value="https://tracker.debian.org/openjdk-21"/>
-    <property name="guice.disable.misplaced.annotation.check" value="true"/>
-    <property name="path.separator" value=":"/>
-    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
-    <property name="user.country" value="GB"/>
-    <property name="sun.java.launcher" value="SUN_STANDARD"/>
-    <property name="test" value="MACTest"/>
-    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
-    <property name="user.dir" value="/mnt/hostfiles/P2/SIRS/Labs/Java-Crypto-Functions"/>
-    <property name="java.vm.compressedOopsMode" value="32-bit"/>
-    <property name="java.runtime.version" value="21.0.8+9-Debian-1"/>
-    <property name="os.arch" value="amd64"/>
-    <property name="java.io.tmpdir" value="/tmp"/>
-    <property name="line.separator" value="&#10;"/>
-    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
-    <property name="stderr.encoding" value="UTF-8"/>
-    <property name="os.name" value="Linux"/>
-    <property name="classworlds.conf" value="/usr/share/maven/bin/m2.conf"/>
+    <property name="java.specification.version" value="22"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
-    <property name="stdout.encoding" value="UTF-8"/>
-    <property name="java.library.path" value="/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib"/>
-    <property name="maven.conf" value="/usr/share/maven/conf"/>
-    <property name="jdk.debug" value="release"/>
-    <property name="java.class.version" value="65.0"/>
-    <property name="java.specification.name" value="Java Platform API Specification"/>
-    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
-    <property name="os.version" value="6.12.38+kali-amd64"/>
-    <property name="library.jansi.path" value="/usr/share/maven/lib/jansi-native"/>
-    <property name="user.home" value="/home/kali"/>
-    <property name="user.timezone" value="Europe/Lisbon"/>
-    <property name="file.encoding" value="UTF-8"/>
-    <property name="java.specification.version" value="21"/>
-    <property name="user.name" value="kali"/>
-    <property name="java.class.path" value="/usr/share/maven/boot/plexus-classworlds-2.x.jar"/>
-    <property name="java.vm.specification.version" value="21"/>
+    <property name="java.class.path" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/test-classes:/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/classes:/home/tomas/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.6.0/junit-jupiter-engine-5.6.0.jar:/home/tomas/.m2/repository/org/apiguardian/apiguardian-api/1.1.0/apiguardian-api-1.1.0.jar:/home/tomas/.m2/repository/org/junit/platform/junit-platform-engine/1.6.0/junit-platform-engine-1.6.0.jar:/home/tomas/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/home/tomas/.m2/repository/org/junit/platform/junit-platform-commons/1.6.0/junit-platform-commons-1.6.0.jar:/home/tomas/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.6.0/junit-jupiter-api-5.6.0.jar:/home/tomas/.m2/repository/javax/annotation/javax.annotation-api/1.3.2/javax.annotation-api-1.3.2.jar:/home/tomas/.m2/repository/javax/xml/bind/jaxb-api/2.3.0/jaxb-api-2.3.0.jar:"/>
+    <property name="java.vm.vendor" value="Eclipse Adoptium"/>
     <property name="sun.arch.data.model" value="64"/>
-    <property name="sun.java.command" value="org.codehaus.plexus.classworlds.launcher.Launcher test -Dtest=MACTest"/>
-    <property name="java.home" value="/usr/lib/jvm/java-21-openjdk-amd64"/>
+    <property name="java.vendor.url" value="https://adoptium.net/"/>
+    <property name="os.name" value="Linux"/>
+    <property name="java.vm.specification.version" value="22"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="US"/>
+    <property name="sun.boot.library.path" value="/opt/temurin-22/lib"/>
+    <property name="sun.java.command" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire/surefirebooter-20251119091005276_3.jar /home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire 2025-11-19T09-10-05_167-jvmRun1 surefire-20251119091005276_1tmp surefire_0-20251119091005276_2tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="surefire.test.class.path" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/test-classes:/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/classes:/home/tomas/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.6.0/junit-jupiter-engine-5.6.0.jar:/home/tomas/.m2/repository/org/apiguardian/apiguardian-api/1.1.0/apiguardian-api-1.1.0.jar:/home/tomas/.m2/repository/org/junit/platform/junit-platform-engine/1.6.0/junit-platform-engine-1.6.0.jar:/home/tomas/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/home/tomas/.m2/repository/org/junit/platform/junit-platform-commons/1.6.0/junit-platform-commons-1.6.0.jar:/home/tomas/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.6.0/junit-jupiter-api-5.6.0.jar:/home/tomas/.m2/repository/javax/annotation/javax.annotation-api/1.3.2/javax.annotation-api-1.3.2.jar:/home/tomas/.m2/repository/javax/xml/bind/jaxb-api/2.3.0/jaxb-api-2.3.0.jar:"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/home/tomas"/>
     <property name="user.language" value="en"/>
     <property name="java.specification.vendor" value="Oracle Corporation"/>
-    <property name="java.vm.info" value="mixed mode, sharing"/>
-    <property name="java.version" value="21.0.8"/>
-    <property name="native.encoding" value="UTF-8"/>
-    <property name="java.vendor" value="Debian"/>
-    <property name="maven.home" value="/usr/share/maven"/>
+    <property name="java.version.date" value="2024-07-16"/>
+    <property name="java.home" value="/opt/temurin-22"/>
     <property name="file.separator" value="/"/>
-    <property name="java.version.date" value="2025-07-15"/>
-    <property name="java.vendor.url.bug" value="https://bugs.debian.org/openjdk-21"/>
+    <property name="basedir" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions"/>
+    <property name="java.vm.compressedOopsMode" value="32-bit"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="surefire.real.class.path" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions/target/surefire/surefirebooter-20251119091005276_3.jar"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="22.0.2+9"/>
+    <property name="user.name" value="tomas"/>
+    <property name="stdout.encoding" value="UTF-8"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="6.17.8-arch1-1"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="java.vendor.version" value="Temurin-22.0.2+9"/>
+    <property name="localRepository" value="/home/tomas/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://github.com/adoptium/adoptium-support/issues"/>
+    <property name="java.io.tmpdir" value="/tmp"/>
+    <property name="java.version" value="22.0.2"/>
+    <property name="user.dir" value="/home/tomas/IST/P2/SIRS/Labs/Java-Crypto-Functions"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="stderr.encoding" value="UTF-8"/>
+    <property name="java.vendor" value="Eclipse Adoptium"/>
+    <property name="java.vm.version" value="22.0.2+9"/>
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
-    <property name="sun.cpu.endian" value="little"/>
+    <property name="java.class.version" value="66.0"/>
   </properties>
-  <testcase name="pt.tecnico.crypto.MACTest.testMACWithNonceFreshness" classname="pt.tecnico.crypto.MACTest" time="0.16"/>
-  <testcase name="pt.tecnico.crypto.MACTest.testMACObject" classname="pt.tecnico.crypto.MACTest" time="0.005"/>
-  <testcase name="pt.tecnico.crypto.MACTest.testSignatureStepByStep" classname="pt.tecnico.crypto.MACTest" time="0.008"/>
+  <testcase name="testSignatureStepByStep" classname="pt.tecnico.crypto.MACTest" time="0.013">
+    <system-out><![CDATA[TEST step-by-step message authentication code using cipher 'AES/ECB/PKCS5Padding' and digest 'SHA-256'
+Text:
+This is the plain text!
+Bytes:
+546869732069732074686520706C61696E207465787421
+Signing...
+Digest:
+491E0B645F6D596B76529D2380B1BD96F5A1F7B83B51E64F49FD634D74CD7D15
+CipherDigest:
+C5B891DC12A45B68DBA640293DB3B4F6867206AF03A84109AE6DCE5B90D880B6939B4C370AE90258308038C70CDFE2D0
+Verifying...
+New digest:
+491E0B645F6D596B76529D2380B1BD96F5A1F7B83B51E64F49FD634D74CD7D15
+Deciphered Digest:
+491E0B645F6D596B76529D2380B1BD96F5A1F7B83B51E64F49FD634D74CD7D15
+MAC is right
+
+
+]]></system-out>
+  </testcase>
+  <testcase name="testMACWithNonceFreshness" classname="pt.tecnico.crypto.MACTest" time="0.007">
+    <system-out><![CDATA[=== TESTING MAC WITH RANDOM NONCE FRESHNESS ===
+Plaintext: "This is the plain text!"
+
+--- Sending Message #1 ---
+  Nonce: 0240C833BB49CE3BE716EEDBBD72B157
+  MAC: 3040E87C28741D497ADC6175BC1640207D89937A6591E7817323362AACBC47DD
+Received nonce: 0240C833BB49CE3BE716EEDBBD72B157
+MAC valid. Storing nonce.
+Verification: SUCCESS 
+
+--- Sending Message #2 ---
+  Nonce: 2008C123D1D86CA7A09FEB551B726091
+  MAC: BD401CDD82882D0E56556AA6078457BF63348154595F15496C44F448EAD8B854
+Received nonce: 2008C123D1D86CA7A09FEB551B726091
+MAC valid. Storing nonce.
+Verification: SUCCESS 
+
+--- Replay Attack: Resending Message #1 ---
+Received nonce: 0240C833BB49CE3BE716EEDBBD72B157
+REPLAY DETECTED! Nonce already used.
+Replay detected: YES 
+
+=== TEST PASSED ===
+]]></system-out>
+  </testcase>
+  <testcase name="testMACObject" classname="pt.tecnico.crypto.MACTest" time="0.003">
+    <system-out><![CDATA[TEST 'HmacSHA256' message authentication code.
+Text:
+This is the plain text!
+Bytes:
+546869732069732074686520706C61696E207465787421
+Signing...
+CipherDigest:
+DB5349D61A641D4C5B487A89E8ED8104F50BF135D09A2C1C849D4E5B4578B4D8
+Verifying...
+MAC is right
+
+
+]]></system-out>
+  </testcase>
 </testsuite>
