@@ -1,4 +1,4 @@
-# CXX DeathNode / ChainOfProduct / CivicEcho Project Read Me
+# T19 CivicEcho Project Read Me
 
 <!-- this is an instruction line; after you follow the instruction, delete the corresponding line. Do the same for all instruction lines! -->
 
@@ -8,11 +8,11 @@
 
 ## Team
 
-| Number | Name              | User                             | E-mail                              |
-| -------|-------------------|----------------------------------| ------------------------------------|
-| 11111  | Alice Network     | <https://github.com/AliceUser>   | <mailto:alice@tecnico.ulisboa.pt>   |
-| 22222  | Bob Computer      | <https://github.com/BobUser>     | <mailto:bob@tecnico.ulisboa.pt>     |
-| 33333  | Charlie Security  | <https://github.com/CharlieUser> | <mailto:charlie@tecnico.ulisboa.pt> |
+| Number | Name              | User                                 | E-mail                                        |
+| -------|-------------------|--------------------------------------| ----------------------------------------------|
+| 106869 | Martin Silveira   | <https://github.com/MartinSilveira>  | <mailto:martin.silveira@tecnico.ulisboa.pt>   |
+| 112307 | Tomás Gomes       | <https://github.com/TomasGomes02>    | <mailto:tomasldgomes2002@tecnico.ulisboa.pt>  |
+| 117340 | Tomás Matos       | <https://github.com/tomasmatos6>     | <mailto:tomasmbmatos@tecnico.ulisboa.pt>      |
 
 *(fill table above with team member information)*  
 
