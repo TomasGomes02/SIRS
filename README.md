@@ -2,10 +2,6 @@
 
 <!-- this is an instruction line; after you follow the instruction, delete the corresponding line. Do the same for all instruction lines! -->
 
-*(replace CXX above with group identifier, for example, A07 ou T22)*
-
-*(keep only your scenario name and delete the other names)*
-
 ## Team
 
 | Number | Name              | User                                 | E-mail                                        |
@@ -13,8 +9,6 @@
 | 106869 | Martin Silveira   | <https://github.com/MartinSilveira>  | <mailto:martin.silveira@tecnico.ulisboa.pt>   |
 | 112307 | Tomás Gomes       | <https://github.com/TomasGomes02>    | <mailto:tomasldgomes2002@tecnico.ulisboa.pt>  |
 | 117340 | Tomás Matos       | <https://github.com/tomasmatos6>     | <mailto:tomasmbmatos@tecnico.ulisboa.pt>      |
-
-*(fill table above with team member information)*  
 
 ![Alice](img/alice.png) ![Bob](img/bob.png) ![Charlie](img/charlie.png)
 
@@ -33,7 +27,7 @@ This document presents installation and demonstration instructions.
 
 ## Installation
 
-To see the project in action, it is necessary to setup a virtual environment, with N networks and M machines.  
+To see the project in action, it is necessary to setup a virtual environment, with 3 networks and 4 machines.  
 
 The following diagram shows the networks and machines:
 
@@ -55,10 +49,8 @@ For each machine, there is an initialization script with the machine name, with 
 Inside each machine, use Git to obtain a copy of all the scripts and code.
 
 ```sh
-$ git clone https://github.com/tecnico-sec/cxx...
+$ git clone https://github.com/tecnico-sec/T19-CivicEcho.git
 ```
-
-*(above, replace with link to actual repository)*
 
 Next we have custom instructions for each machine.
 
@@ -116,8 +108,8 @@ This concludes the demonstration.
 
 ### Links to Used Tools and Libraries
 
-- [Java 11.0.16.1](https://openjdk.java.net/)
-- [Maven 3.9.5](https://maven.apache.org/)
+- [Java 25.0.1](https://openjdk.java.net/)
+- [Maven 3.9.11](https://maven.apache.org/)
 - ...
 
 ### Versioning
