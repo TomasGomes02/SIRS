@@ -1,0 +1,11 @@
+{
+  "report_id": "echo_00218",
+  "timestamp": "2025-10-05T14:30:00Z",
+  "category": "infrastructure",
+  "location": "Lisbon, Portugal",
+  "coordinates": {
+    "latitude": 38.72052,
+    "longitude": -9.14583
+  },
+  "description": "Broken traffic light on Avenida da Liberdade"
+}

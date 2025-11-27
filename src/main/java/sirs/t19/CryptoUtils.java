@@ -1,57 +1,57 @@
 package sirs.t19;
 
-import java.io.File;
-import java.nio.file.Files;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 
 public class CryptoUtils {
 
-  private static final String ALGO = "AES/CBC/PKCS5Padding";
+  private static final String AES_ALGO = "AES/CBC/PKCS5Padding";
+  private static final String RSA_ALGO = "RSA";
 
-  // Read the Secret Key (AES)
-  public static SecretKeySpec readSecretKey(String path) throws Exception {
-    byte[] keyBytes = Files.readAllBytes(new File(path).toPath());
-    // Assumes the key file contains exactly 16 bytes (128 bit) or 24/32 bytes.
-    return new SecretKeySpec(keyBytes, "AES");
+  public static SecretKey generateAESKey() throws Exception {
+    KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+    keyGen.init(128);
+    return keyGen.generateKey();
   }
 
-  // Encrypts plainText and returns a byte array containing [IV (16 bytes) + CipherText]
-  public static byte[] encrypt(SecretKeySpec key, byte[] plainText) throws Exception {
-    Cipher cipher = Cipher.getInstance(ALGO);
+  public static byte[] wrapKey(PublicKey pubKey, SecretKey aesKey) throws Exception {
+    Cipher cipher = Cipher.getInstance(RSA_ALGO);
+    cipher.init(Cipher.WRAP_MODE, pubKey);
+    return cipher.wrap(aesKey);
+  }
 
-    // Generate a random IV (Crucial for security in CBC mode)
+  public static SecretKey unwrapKey(PrivateKey privKey, byte[] wrappedKey) throws Exception {
+    Cipher cipher = Cipher.getInstance(RSA_ALGO);
+    cipher.init(Cipher.UNWRAP_MODE, privKey);
+    return (SecretKey) cipher.unwrap(wrappedKey, "AES", Cipher.SECRET_KEY);
+  }
+
+  public static byte[] encrypt(SecretKey key, byte[] plainText) throws Exception {
+    Cipher cipher = Cipher.getInstance(AES_ALGO);
     byte[] iv = new byte[16];
     new SecureRandom().nextBytes(iv);
     IvParameterSpec ivSpec = new IvParameterSpec(iv);
-
     cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
     byte[] cipherText = cipher.doFinal(plainText);
-
-    // Combine IV and CipherText so the reader can separate them later
     byte[] output = new byte[iv.length + cipherText.length];
     System.arraycopy(iv, 0, output, 0, iv.length);
     System.arraycopy(cipherText, 0, output, iv.length, cipherText.length);
-
     return output;
   }
 
-  // Decrypts the byte array [IV + CipherText]
-  public static byte[] decrypt(SecretKeySpec key, byte[] encryptedData) throws Exception {
-    Cipher cipher = Cipher.getInstance(ALGO);
-
-    // Extract IV (First 16 bytes)
+  public static byte[] decrypt(SecretKey key, byte[] encryptedData) throws Exception {
+    Cipher cipher = Cipher.getInstance(AES_ALGO);
     byte[] iv = new byte[16];
     System.arraycopy(encryptedData, 0, iv, 0, iv.length);
     IvParameterSpec ivSpec = new IvParameterSpec(iv);
-
-    // Extract CipherText (The rest)
     int cipherTextSize = encryptedData.length - 16;
     byte[] cipherText = new byte[cipherTextSize];
     System.arraycopy(encryptedData, 16, cipherText, 0, cipherTextSize);
-
     cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
     return cipher.doFinal(cipherText);
   }
