@@ -1,10 +1,12 @@
 package sirs.t19;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.Files;
 import java.security.KeyFactory;
+import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
@@ -12,20 +14,66 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
-
 import javax.crypto.SecretKey;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
 public class SecureLibrary {
+  private static final String PRIVATE_KEY_DIR = "keys/";
+  private static final String PUBLIC_KEY_DIR = "keys/public_keys/";
 
   private static PrivateKey readPrivateKey(String keyPath) throws Exception {
     byte[] keyBytes = Files.readAllBytes(new File(keyPath).toPath());
     PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
     KeyFactory kf = KeyFactory.getInstance("RSA");
     return kf.generatePrivate(spec);
+  }
+
+  public static boolean loginUser(String userId, String password) throws Exception {
+    File privFile = new File(PRIVATE_KEY_DIR, userId + ".key");
+    File hashFile = new File(PRIVATE_KEY_DIR, userId + ".hash");
+
+    if (!privFile.exists() || !hashFile.exists()) {
+      return false;
+    }
+
+    byte[] storedHashBytes = Files.readAllBytes(hashFile.toPath());
+    String storedHash = new String(storedHashBytes);
+    String providedHash = CryptoUtils.hashPassword(password);
+
+    return storedHash.equals(providedHash);
+  }
+
+  public static boolean registerUser(String userId, String password) throws Exception {
+    File privFile = new File(PRIVATE_KEY_DIR, userId + ".key");
+    File pubFile = new File(PUBLIC_KEY_DIR, userId + ".pub");
+    File hashFile = new File(PRIVATE_KEY_DIR, userId + ".hash");
+
+    if (privFile.exists() || hashFile.exists()) {
+      return false;
+    }
+
+    System.out.println("Generating keys for '" + userId + "'...");
+
+    KeyPair pair = CryptoUtils.generateRSAKeyPair();
+
+    privFile.getParentFile().mkdirs();
+    try (FileOutputStream fos = new FileOutputStream(privFile)) {
+      fos.write(pair.getPrivate().getEncoded());
+    }
+
+    pubFile.getParentFile().mkdirs();
+    try (FileOutputStream fos = new FileOutputStream(pubFile)) {
+      fos.write(pair.getPublic().getEncoded());
+    }
+
+    String passwordHash = CryptoUtils.hashPassword(password);
+    try (FileOutputStream fos = new FileOutputStream(hashFile)) {
+      fos.write(passwordHash.getBytes());
+    }
+
+    return true;
   }
 
   public static void protect(String inputFile, String outputFile, String senderPrivPath,

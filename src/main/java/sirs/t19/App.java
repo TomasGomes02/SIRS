@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Scanner;
 
 public class App {
+
   public static void main(String[] args) {
     System.out.println("--------------------------------------------------");
     System.out.println("      CivicEcho Client Terminal (v5.0)            ");
@@ -11,8 +12,11 @@ public class App {
 
     Scanner scanner = new Scanner(System.in);
 
+    String user = "";
+
     while (true) {
-      System.out.print("\nCivicEcho-Client> ");
+      String prompt = user.isEmpty() ? "CivicEcho" : "CivicEcho-" + user;
+      System.out.printf("\n" + prompt + "> ");
       if (!scanner.hasNextLine())
         break;
 
@@ -25,6 +29,46 @@ public class App {
       String[] methodArgs = Arrays.copyOfRange(tokens, 1, tokens.length);
 
       try {
+        switch (command) {
+          case "exit":
+            System.out.println("System exiting...");
+            scanner.close();
+            return;
+
+          case "help":
+            printHelp();
+            continue;
+
+          case "login":
+            if (methodArgs.length < 2) {
+              System.err.println("Usage: login <username> <password>");
+            } else {
+              if (SecureLibrary.loginUser(methodArgs[0], methodArgs[1])) {
+                user = methodArgs[0];
+                System.out.println("Login successful.");
+              } else
+                System.err.println("Wrong credentials.");
+            }
+            break;
+
+          case "register":
+            if (methodArgs.length < 2) {
+              System.err.println("Usage: register <username> <password>");
+            } else {
+              if (SecureLibrary.registerUser(methodArgs[0], methodArgs[1])) {
+                user = methodArgs[0];
+                System.out.println("Registration successful. Logged in as " + user);
+              } else
+                System.err.println("User already registered.");
+            }
+
+          default:
+            System.err.println("Unknown command.");
+        }
+
+        if (user.isEmpty()) {
+          continue;
+        }
         switch (command) {
           case "exit":
             scanner.close();

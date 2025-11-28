@@ -1,8 +1,13 @@
 package sirs.t19;
 
+import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.util.Base64;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -12,6 +17,12 @@ public class CryptoUtils {
 
   private static final String AES_ALGO = "AES/CBC/PKCS5Padding";
   private static final String RSA_ALGO = "RSA";
+
+  public static KeyPair generateRSAKeyPair() throws Exception {
+    KeyPairGenerator keyGen = KeyPairGenerator.getInstance(RSA_ALGO);
+    keyGen.initialize(2048);
+    return keyGen.generateKeyPair();
+  }
 
   public static SecretKey generateAESKey() throws Exception {
     KeyGenerator keyGen = KeyGenerator.getInstance("AES");
@@ -23,6 +34,12 @@ public class CryptoUtils {
     Cipher cipher = Cipher.getInstance(RSA_ALGO);
     cipher.init(Cipher.WRAP_MODE, pubKey);
     return cipher.wrap(aesKey);
+  }
+
+  public static String hashPassword(String password) throws Exception {
+    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    byte[] hash = digest.digest(password.getBytes(StandardCharsets.UTF_8));
+    return Base64.getEncoder().encodeToString(hash);
   }
 
   public static SecretKey unwrapKey(PrivateKey privKey, byte[] wrappedKey) throws Exception {
