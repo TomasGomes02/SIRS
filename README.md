@@ -36,7 +36,7 @@ The following diagram shows the networks and machines:
 ### Prerequisites
 
 Database virtual machine and application virtual machine are based on: Ubuntu 22.04.4 live server
-[Donwload](https://old-releases.ubuntu.com/releases/22.04/ubuntu-22.04.4-live-server-amd64.iso) a virtual machine.
+[Download](https://old-releases.ubuntu.com/releases/22.04/ubuntu-22.04.4-live-server-amd64.iso) a virtual machine.
 
 ### Machine configurations
 
