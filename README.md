@@ -35,36 +35,74 @@ The following diagram shows the networks and machines:
 
 ### Prerequisites
 
-All the virtual machines are based on: Linux 64-bit, ...
-
-[Download](https://...link_to_download_installation_media) and [install](https://...link_to_installation_instructions) a virtual machine.  
-Clone the base machine to create the other machines.
-
-*(above, replace witch actual links)*
+Database virtual machine and application virtual machine are based on: Ubuntu 22.04.4 live server
+[Donwload](https://old-releases.ubuntu.com/releases/22.04/ubuntu-22.04.4-live-server-amd64.iso) a virtual machine.
 
 ### Machine configurations
 
-For each machine, there is an initialization script with the machine name, with prefix `init-` and suffix `.sh`, that installs all the necessary packages and makes all required configurations in the a clean machine.
+#### Network topology
 
-Inside each machine, use Git to obtain a copy of all the scripts and code.
+Create the following host-only networks in **VirtualBox → File → Host Network Manager**:
+
+| Network | Adapter # | IPv4 Address/Mask | DHCP |
+|---------|-----------|-------------------|------|
+| SW1     | #2        | 192.168.10.1/24   | OFF  |
+| SW2     | #3        | 192.168.20.1/24   | OFF  |
+
+Wire each VM as shown in the deployment diagram.
+
+#### Machine 1 - Database server
+
+This machine runs Ubuntu 22.04.4-live-server-amd and Mongodb v7.0.26
+
+setup:
+1. Create VM with **NAT** network, boot, log in.
+2. Inside VM console:
+   ```sh
+   sudo apt update
+   sudo apt install -y curl
+   ```
+3. [Add port forward] Power-off the VM -> Settings -> Network -> Adapter 1 -> Advanced -> Port Forward -> Add:
+   
+| Name | Protocol | Host IP | Host Port | Guest IP | Guest Port |
+|------|----------|---------|-----------|----------|------------|
+| ssh  | TCP      |         | 2222      |          | 22         |
+
+4. Power-on the VM and from **Host**:
 
 ```sh
-$ git clone https://github.com/tecnico-sec/T19-CivicEcho.git
+ssh ubuntu@127.0.0.1 -p 2222
 ```
 
-Next we have custom instructions for each machine.
-
-#### Machine 1
-
-This machine runs ...
-
-*(describe what kind of software runs on this machine, e.g. a database server (PostgreSQL 16.1))*
-
-To verify:
-
+5. Inside SSH session paste:
 ```sh
-$ setup command
+curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/7a19b6ba9bd537e486d343eb097c8f316f0fc71f/init-database-vm.sh | sudo bash
 ```
+7. When script finishes, exit ssh and power-off VM
+
+8. [Isolate network] VM Settings -> Network -> Adapter 1 -> Attached to: Host-only Adapter #2 (192.168.10.1/24)
+
+   
+To verify network isolation:
+
+1. Show ip route table:
+```sh
+ip route show
+```
+2. Verify network isolation (no internet):
+```sh
+ping -c 3 google.com
+```
+3. Verify reachability inside SW1:
+```sh
+ping -c 3 192.168.10.1
+```
+
+To verify database installation:
+```sh
+mongosh mongodb://192.168.10.10:27017 --eval 'db.adminCommand("ping")'
+```
+
 
 *(replace with actual commands)*
 
