@@ -42,7 +42,7 @@ Database virtual machine and application virtual machine are based on: Ubuntu 22
 
 #### Network topology
 
-Create the following host-only networks in **VirtualBox → File → Host Network Manager**:
+Create the following host-only networks in **VirtualBox -> File -> Tools -> Networks -> Host Network Manager**:
 
 | Network | Adapter # | IPv4 Address/Mask | DHCP |
 |---------|-----------|-------------------|------|
