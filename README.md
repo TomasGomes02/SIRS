@@ -71,7 +71,7 @@ setup:
 4. Power-on the VM and from **Host**:
 
 ```sh
-ssh ubuntu@127.0.0.1 -p 2222
+ssh <vm-user>@127.0.0.1 -p 2222
 ```
 
 5. Inside SSH session paste:
