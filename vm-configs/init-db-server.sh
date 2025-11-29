@@ -1,6 +1,9 @@
 #!/bin/bash
 # init-db-server.sh  – Ubuntu Server 22.04  (MongoDB role)
 
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a       
+
 # Phase 1: install while NAT is present
 
 set -euo pipefail
