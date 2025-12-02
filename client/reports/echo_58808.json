@@ -1,0 +1,11 @@
+{
+  "report_id": "echo_58808",
+  "timestamp": "2025-12-02T10:42:32.796203131Z",
+  "category": "infra",
+  "location": "lisbon",
+  "coordinates": {
+    "latitude": -39.472980,
+    "longitude": -9.312749
+  },
+  "description": "broken post"
+}

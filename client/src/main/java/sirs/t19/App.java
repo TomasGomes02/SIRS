@@ -74,6 +74,33 @@ public class App {
             scanner.close();
             return;
 
+          case "report":
+            System.out.println("Please fill out the report fields.");
+
+            System.out.print("Category: ");
+            String category = scanner.nextLine().trim();
+
+            System.out.print("Location: ");
+            String location = scanner.nextLine().trim();
+
+            System.out.print("Latitude: ");
+            double latitude = Double.parseDouble(scanner.nextLine().trim());
+
+            System.out.print("Longitude: ");
+            double longitude = Double.parseDouble(scanner.nextLine().trim());
+
+            System.out.print("Description: ");
+            String description = scanner.nextLine().trim();
+
+            try {
+                Report report = new Report(category, location, latitude, longitude, description);
+                report.saveReport();
+                System.out.println("Report saved to client/reports/" + report.getReportId() + ".json");
+            } catch (Exception e) {
+                System.err.println("Error saving report: " + e.getMessage());
+            }
+            break;
+
           case "protect":
             if (methodArgs.length < 4) {
               System.err.println("Usage: protect <input> <output_on_server> <my_priv_key> <my_id>");
@@ -114,6 +141,8 @@ public class App {
 
   private static void printHelp() {
     System.out.println("Client Commands:");
+    System.out.println(
+        "  report    ...  (Opens a form to fill out a report and saves it)");
     System.out.println(
         "  protect   ...  (Submits to Server. Server verifies signature/freshness but CANNOT decrypt)");
     System.out.println(

@@ -25,6 +25,7 @@
     <p>sirs.t19</p>
     <c>App</c>
     <mainclass>${p}.${c}</mainclass>
+    <src.root>client</src.root>
   </properties>
 
   <dependencies>
@@ -63,6 +64,9 @@
   </dependencies>
 
   <build>
+    <sourceDirectory>${src.root}/src/main/java</sourceDirectory>
+    <testSourceDirectory>${src.root}/src/test/java</testSourceDirectory>
+    
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
