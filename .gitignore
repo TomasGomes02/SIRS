@@ -594,3 +594,6 @@ fabric.properties
 
 
 keys/
+
+# Ignore target
+*/target/
