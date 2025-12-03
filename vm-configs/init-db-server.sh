@@ -14,6 +14,51 @@ apt-get update
 apt-get install -y mongodb-org
 systemctl enable --now mongod
 
+echo "=== Phase 1b: install Telnet server + firewall + certs (while NAT is up) ==="
+
+# Telnet server (xinetd)
+apt-get install -y xinetd telnetd
+tee /etc/xinetd.d/telnet <<'EOF'
+service telnet
+{
+        disable         = no
+        flags           = REUSE
+        socket_type     = stream
+        wait            = no
+        user            = root
+        server          = /usr/sbin/in.telnetd
+        log_on_failure  += USERID
+}
+EOF
+systemctl enable --now xinetd
+
+# Firewall: block ICMP from SW2 (lab exercise)
+ufw --force reset
+ufw default deny incoming         
+ufw default allow outgoing
+ufw allow from 192.168.10.0/24 to any port 22
+ufw allow from 192.168.10.0/24 to any port 27017
+ufw allow from 192.168.10.0/24 to any port 23
+ufw deny from 192.168.20.0/24 to any port icmp     
+
+# Generate RSA keys + certs (Secure-Sockets lab)
+mkdir -p /etc/ssl/sirs
+cd /etc/ssl/sirs
+openssl genrsa -out server.key 2048
+openssl genrsa -out user.key 2048
+openssl req -new -key server.key -out server.csr -subj "/CN=sirs-server/O=T19-CivicEcho"
+openssl req -new -key user.key -out user.csr -subj "/CN=sirs-user/O=T19-CivicEcho"
+openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
+echo 01 > server.srl
+openssl x509 -req -days 365 -in user.csr -CA server.crt -CAkey server.key -out user.crt
+openssl x509 -in server.crt -out server.pem
+openssl x509 -in user.crt -out user.pem
+openssl pkcs12 -export -in server.crt -inkey server.key -out server.p12 -passout pass:changeme
+openssl pkcs12 -export -in user.crt -inkey user.key -out user.p12 -passout pass:changeme
+apt install -y openjdk-11-jre-headless
+keytool -import -trustcacerts -file user.pem -keypass changeme -storepass changeme -keystore servertruststore.jks -noprompt
+keytool -import -trustcacerts -file server.pem -keypass changeme -storepass changeme -keystore usertruststore.jks -noprompt
+
 echo "=== Phase 2: schedule network switch (runs after reboot into host-only) ==="
 # discover interface ONCE, export for the service
 IF=$(ip -br link | awk '/^e[ns][^:]+[[:space:]]+UP/ {print $1; exit}')
