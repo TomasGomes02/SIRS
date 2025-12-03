@@ -38,8 +38,7 @@ ufw default deny incoming
 ufw default allow outgoing
 ufw allow from 192.168.10.20 to any port 22      # SSH (management)
 ufw allow from 192.168.10.20 to any port 27017   # MongoDB (DB access)
-ufw allow from 192.168.10.20 to any port 23      # Telnet (lab demo)
-ufw deny from 192.168.20.0/24 to any port icmp    # block ICMP from SW2 (lab requirement)
+ufw deny from 192.168.20.0/24 to any port icmp    # block ICMP from SW2
 ufw --force enable
 
 # Generate RSA keys + certs (Secure-Sockets lab)
