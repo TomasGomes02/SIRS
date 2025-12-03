@@ -32,7 +32,7 @@ To see the project in action, it is necessary to setup a virtual environment, wi
 The following diagram shows the networks and machines:
 
 ![Figure 1 - Network diagram](img/diagrama_sirs_v2.png)
-*(include a text-based or an image-based diagram)*
+
 
 ### Prerequisites
 
@@ -47,8 +47,8 @@ Create the following host-only networks in **VirtualBox -> File -> Tools -> Netw
 
 | Network | Adapter # | IPv4 Address/Mask | DHCP |
 |---------|-----------|-------------------|------|
-| SW1     | #2        | 192.168.10.1/24   | OFF  |
-| SW2     | #3        | 192.168.20.1/24   | OFF  |
+| SW1     | #2        | 192.168.10.0/24   | OFF  |
+| SW2     | #3        | 192.168.20.0/24   | OFF  |
 
 Wire each VM as shown in the deployment diagram.
 
