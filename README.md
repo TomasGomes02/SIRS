@@ -6,9 +6,9 @@
 
 | Number | Name              | User                                 | E-mail                                        |
 | -------|-------------------|--------------------------------------| ----------------------------------------------|
-| 106869 | Martin Silveira   | <https://github.com/MartinSilveira>  | <mailto:martin.silveira@tecnico.ulisboa.pt>   |
-| 112307 | Tomás Gomes       | <https://github.com/TomasGomes02>    | <mailto:tomasldgomes2002@tecnico.ulisboa.pt>  |
-| 117340 | Tomás Matos       | <https://github.com/tomasmatos6>     | <mailto:tomasmbmatos@tecnico.ulisboa.pt>      |
+| 106869 | Martin Silveira   | <https://github.com/MartinSilveira>  | <martin.silveira@tecnico.ulisboa.pt>   |
+| 112307 | Tomás Gomes       | <https://github.com/TomasGomes02>    | <tomasldgomes2002@tecnico.ulisboa.pt>  |
+| 117340 | Tomás Matos       | <https://github.com/tomasmatos6>     | <tomasmbmatos@tecnico.ulisboa.pt>      |
 
 ![Alice](img/alice.png) ![Bob](img/bob.png) ![Charlie](img/charlie.png)
 
@@ -31,6 +31,7 @@ To see the project in action, it is necessary to setup a virtual environment, wi
 
 The following diagram shows the networks and machines:
 
+![Figure 1 - Network diagram](img/diagram_sirs_v2.png)
 *(include a text-based or an image-based diagram)*
 
 ### Prerequisites
@@ -76,7 +77,7 @@ ssh <vm-user>@127.0.0.1 -p 2222
 
 5. Inside SSH session paste:
 ```sh
-curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/7a19b6ba9bd537e486d343eb097c8f316f0fc71f/init-database-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/7f5c39c39a7bbb19e11c5e300a3b062ced8ec1b3/init-database-vm.sh | sudo bash
 ```
 7. When script finishes, exit ssh and power-off VM
 
