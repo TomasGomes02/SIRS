@@ -14,9 +14,14 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
 public class CryptoUtils {
-
   private static final String AES_ALGO = "AES/CBC/PKCS5Padding";
   private static final String RSA_ALGO = "RSA";
+
+  public static String hashPassword(String password) throws Exception {
+    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    byte[] hash = digest.digest(password.getBytes(StandardCharsets.UTF_8));
+    return Base64.getEncoder().encodeToString(hash);
+  }
 
   public static KeyPair generateRSAKeyPair() throws Exception {
     KeyPairGenerator keyGen = KeyPairGenerator.getInstance(RSA_ALGO);
@@ -34,12 +39,6 @@ public class CryptoUtils {
     Cipher cipher = Cipher.getInstance(RSA_ALGO);
     cipher.init(Cipher.WRAP_MODE, pubKey);
     return cipher.wrap(aesKey);
-  }
-
-  public static String hashPassword(String password) throws Exception {
-    MessageDigest digest = MessageDigest.getInstance("SHA-256");
-    byte[] hash = digest.digest(password.getBytes(StandardCharsets.UTF_8));
-    return Base64.getEncoder().encodeToString(hash);
   }
 
   public static SecretKey unwrapKey(PrivateKey privKey, byte[] wrappedKey) throws Exception {

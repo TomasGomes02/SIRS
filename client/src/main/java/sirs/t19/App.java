@@ -1,152 +1,176 @@
 package sirs.t19;
 
+import java.io.File;
 import java.util.Arrays;
-import java.util.Scanner;
+import java.util.List;
+import org.jline.builtins.Completers.FileNameCompleter;
+import org.jline.reader.Completer;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.ParsedLine;
+import org.jline.reader.impl.completer.ArgumentCompleter;
+import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 
 public class App {
 
+  private static String currentUser = "";
+
   public static void main(String[] args) {
-    System.out.println("--------------------------------------------------");
-    System.out.println("      CivicEcho Client Terminal (v5.0)            ");
-    System.out.println("--------------------------------------------------");
+    try {
+      Terminal terminal = TerminalBuilder.builder().system(true).build();
 
-    Scanner scanner = new Scanner(System.in);
+      // Completers
+      Completer fileCompleter = new FileNameCompleter();
+      Completer guestCompleter = new StringsCompleter("login", "register", "help", "exit", "quit");
 
-    String user = "";
+      // User mode supports commands + file paths
+      Completer userCompleter = new ArgumentCompleter(new StringsCompleter("protect", "unprotect",
+          "check", "report", "logout", "help", "exit", "quit"), fileCompleter);
 
-    while (true) {
-      String prompt = user.isEmpty() ? "CivicEcho" : "CivicEcho-" + user;
-      System.out.printf("\n" + prompt + "> ");
-      if (!scanner.hasNextLine())
-        break;
+      Completer dynamicCompleter = new Completer() {
+        @Override
+        public void complete(LineReader reader, ParsedLine line,
+            List<org.jline.reader.Candidate> candidates) {
+          if (currentUser.isEmpty()) {
+            guestCompleter.complete(reader, line, candidates);
+          } else {
+            userCompleter.complete(reader, line, candidates);
+          }
+        }
+      };
 
-      String line = scanner.nextLine().trim();
-      if (line.isEmpty())
-        continue;
+      LineReader lineReader =
+          LineReaderBuilder.builder().terminal(terminal).completer(dynamicCompleter).build();
 
-      String[] tokens = line.split("\\s+");
-      String command = tokens[0];
-      String[] methodArgs = Arrays.copyOfRange(tokens, 1, tokens.length);
+      System.out.println("--------------------------------------------------");
+      System.out.println("      CivicEcho Client Terminal (v11.0)           ");
+      System.out.println("--------------------------------------------------");
 
-      try {
-        switch (command) {
-          case "exit":
-            System.out.println("System exiting...");
-            scanner.close();
-            return;
+      while (true) {
+        String prompt = currentUser.isEmpty() ? "CivicEcho> " : "CivicEcho-" + currentUser + "> ";
+        String line;
 
-          case "help":
-            printHelp();
-            continue;
-
-          case "login":
-            if (methodArgs.length < 2) {
-              System.err.println("Usage: login <username> <password>");
-            } else {
-              if (SecureLibrary.loginUser(methodArgs[0], methodArgs[1])) {
-                user = methodArgs[0];
-                System.out.println("Login successful.");
-              } else
-                System.err.println("Wrong credentials.");
-            }
-            break;
-
-          case "register":
-            if (methodArgs.length < 2) {
-              System.err.println("Usage: register <username> <password>");
-            } else {
-              if (SecureLibrary.registerUser(methodArgs[0], methodArgs[1])) {
-                user = methodArgs[0];
-                System.out.println("Registration successful. Logged in as " + user);
-              } else
-                System.err.println("User already registered.");
-            }
-
-          default:
-            System.err.println("Unknown command.");
+        try {
+          line = lineReader.readLine(prompt).trim();
+        } catch (Exception e) {
+          break;
         }
 
-        if (user.isEmpty()) {
+        if (line.isEmpty())
           continue;
+
+        String[] tokens = line.split("\\s+");
+        String command = tokens[0];
+        String[] argsList = Arrays.copyOfRange(tokens, 1, tokens.length);
+
+        try {
+          if (currentUser.isEmpty()) {
+            switch (command) {
+              case "exit":
+                return;
+              case "help":
+                printAuthHelp();
+                break;
+              case "login":
+                if (argsList.length < 2)
+                  System.err.println("Usage: login <user> <pass>");
+                else {
+                  if (SecureLibrary.loginUser(argsList[0], argsList[1])) {
+                    currentUser = argsList[0];
+                    System.out.println("Login successful.");
+                  } else
+                    System.err.println("Wrong credentials.");
+                }
+                break;
+              case "register":
+                if (argsList.length < 3)
+                  System.err.println("Usage: register <user> <pass> <role:citizen|municipality>");
+                else {
+                  String id = SecureLibrary.registerUser(argsList[0], argsList[1], argsList[2]);
+                  if (id != null) {
+                    currentUser = argsList[0]; // Set to username or ID depending on preference
+                    System.out.println("Registered. ID: " + id);
+                  } else
+                    System.err.println("User exists.");
+                }
+                break;
+              default:
+                System.out.println("Please login.");
+            }
+          } else {
+            switch (command) {
+              case "exit":
+                return;
+              case "logout":
+                currentUser = "";
+                break;
+              case "report":
+                handleReportCreation(lineReader);
+                break;
+              case "protect":
+                if (argsList.length < 2)
+                  System.err.println("Usage: protect <in> <server_out>");
+                else
+                  SecureLibrary.protect(argsList[0], argsList[1], currentUser);
+                break;
+              case "unprotect":
+                if (argsList.length < 2)
+                  System.err.println("Usage: unprotect <server_in> <local_out>");
+                else
+                  SecureLibrary.unprotect(argsList[0], argsList[1], currentUser);
+                break;
+              case "check":
+                if (argsList.length < 1)
+                  System.err.println("Usage: check <in>");
+                else
+                  SecureLibrary.check(argsList[0]);
+                break;
+              case "help":
+                printUserHelp();
+                break;
+              default:
+                System.err.println("Unknown command.");
+            }
+          }
+        } catch (Exception e) {
+          System.err.println("Error: " + e.getMessage());
         }
-        switch (command) {
-          case "exit":
-            scanner.close();
-            return;
-
-          case "report":
-            System.out.println("Please fill out the report fields.");
-
-            System.out.print("Category: ");
-            String category = scanner.nextLine().trim();
-
-            System.out.print("Location: ");
-            String location = scanner.nextLine().trim();
-
-            System.out.print("Latitude: ");
-            double latitude = Double.parseDouble(scanner.nextLine().trim());
-
-            System.out.print("Longitude: ");
-            double longitude = Double.parseDouble(scanner.nextLine().trim());
-
-            System.out.print("Description: ");
-            String description = scanner.nextLine().trim();
-
-            try {
-                Report report = new Report(category, location, latitude, longitude, description);
-                report.saveReport();
-                System.out.println("Report saved to client/reports/" + report.getReportId() + ".json");
-            } catch (Exception e) {
-                System.err.println("Error saving report: " + e.getMessage());
-            }
-            break;
-
-          case "protect":
-            if (methodArgs.length < 4) {
-              System.err.println("Usage: protect <input> <output_on_server> <my_priv_key> <my_id>");
-            } else {
-              SecureLibrary.protect(methodArgs[0], methodArgs[1], methodArgs[2], methodArgs[3]);
-            }
-            break;
-
-          case "unprotect":
-            if (methodArgs.length < 3) {
-              System.err
-                  .println("Usage: unprotect <input_from_server> <local_output> <my_priv_key>");
-            } else {
-              SecureLibrary.unprotect(methodArgs[0], methodArgs[1], methodArgs[2]);
-            }
-            break;
-
-          case "check":
-            if (methodArgs.length < 1) {
-              System.err.println("Usage: check <input_from_server>");
-            } else {
-              SecureLibrary.check(methodArgs[0], null);
-            }
-            break;
-
-          case "help":
-            printHelp();
-            break;
-
-          default:
-            System.err.println("Unknown command.");
-        }
-      } catch (Exception e) {
-        System.err.println("Error: " + e.getMessage());
       }
+    } catch (Exception e) {
+      e.printStackTrace();
     }
   }
 
-  private static void printHelp() {
-    System.out.println("Client Commands:");
-    System.out.println(
-        "  report    ...  (Opens a form to fill out a report and saves it)");
-    System.out.println(
-        "  protect   ...  (Submits to Server. Server verifies signature/freshness but CANNOT decrypt)");
-    System.out.println(
-        "  unprotect ...  (Decrypts content. Fails if you are the Server or not a recipient)");
-    System.out.println("  check     ...  (Verifies integrity locally)");
+  private static void handleReportCreation(LineReader reader) {
+    System.out.println("--- New Citizen Report ---");
+    String category = reader.readLine("Category: ").trim();
+    String location = reader.readLine("Location: ").trim();
+    double lat = 0, lon = 0;
+    try {
+      lat = Double.parseDouble(reader.readLine("Latitude: ").trim());
+      lon = Double.parseDouble(reader.readLine("Longitude: ").trim());
+    } catch (Exception e) {
+      return;
+    }
+    String desc = reader.readLine("Description: ").trim();
+
+    try {
+      new File("client/reports").mkdirs();
+      Report r = new Report(category, location, lat, lon, desc);
+      r.saveReport();
+      System.out.println("Report saved: client/reports/" + r.getReportId() + ".json");
+    } catch (Exception e) {
+      System.err.println("Failed: " + e.getMessage());
+    }
+  }
+
+  private static void printAuthHelp() {
+    System.out.println("Commands: login, register");
+  }
+
+  private static void printUserHelp() {
+    System.out.println("Commands: report, protect, unprotect, check, logout");
   }
 }

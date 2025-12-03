@@ -22,7 +22,7 @@ import com.google.gson.JsonObject;
 
 public class ServerMock {
 
-  private static final String KEYS_DIR = "keys/public_keys";
+  private static final String KEYS_DIR = "client/keys/public_keys";
   private static final String NONCE_DB = ".history/server_nonce_db.txt";
   public static final long SERVER_TOLERANCE_WINDOW = 120000; // 2 minutes
 
@@ -49,20 +49,20 @@ public class ServerMock {
   }
 
   public static void submitReport(JsonObject envelope, String savePath) throws Exception {
-    if (!envelope.has("header") || !envelope.has("signature") || !envelope.has("ciphertext")) {
+    if (!envelope.has("metadata") || !envelope.has("signature") || !envelope.has("ciphertext")) {
       throw new SecurityException("Server Rejected: Invalid JSON format.");
     }
 
-    JsonObject header = envelope.getAsJsonObject("header");
-    String authorId = header.get("author_id").getAsString();
-    long timestamp = header.get("timestamp").getAsLong();
-    String nonce = header.get("nonce").getAsString();
+    JsonObject metadata = envelope.getAsJsonObject("metadata");
+    String authorId = metadata.get("author_id").getAsString();
+    long timestamp = metadata.get("timestamp").getAsLong();
+    String nonce = metadata.get("nonce").getAsString();
 
     PublicKey authorKey = getUserPublicKey(authorId);
 
     String recipientsStr = envelope.get("recipients").toString();
     String ciphertext = envelope.get("ciphertext").getAsString();
-    String dataToVerify = header.toString() + recipientsStr + ciphertext;
+    String dataToVerify = metadata.toString() + recipientsStr + ciphertext;
 
     Signature rsa = Signature.getInstance("SHA256withRSA");
     rsa.initVerify(authorKey);
