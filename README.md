@@ -31,7 +31,7 @@ To see the project in action, it is necessary to setup a virtual environment, wi
 
 The following diagram shows the networks and machines:
 
-![Figure 1 - Network diagram](img/diagram_sirs_v2.png)
+![Figure 1 - Network diagram](img/diagrama_sirs_v2.png)
 *(include a text-based or an image-based diagram)*
 
 ### Prerequisites
