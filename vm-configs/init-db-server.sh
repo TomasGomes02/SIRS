@@ -6,9 +6,9 @@ export NEEDRESTART_MODE=a
 
 echo "=== Phase 1: install MongoDB 7.0 (while NAT is up) ==="
 apt-get update && apt-get upgrade -y
-curl -fsSL https://pgp.mongodb.com/server-7.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
+curl -fsSL https://pgp.mongodb.com/server-7.0.asc  | gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
 echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] \
-https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
+https://repo.mongodb.org/apt/ubuntu  jammy/mongodb-org/7.0 multiverse" \
 > /etc/apt/sources.list.d/mongodb-org-7.0.list
 apt-get update
 apt-get install -y mongodb-org
@@ -32,14 +32,15 @@ service telnet
 EOF
 systemctl enable --now xinetd
 
-# Firewall: block ICMP from SW2 (lab exercise)
+# Firewall: restrict to APP VM only (192.168.10.20) + block ICMP from SW2
 ufw --force reset
 ufw default deny incoming         
 ufw default allow outgoing
-ufw allow from 192.168.10.0/24 to any port 22
-ufw allow from 192.168.10.0/24 to any port 27017
-ufw allow from 192.168.10.0/24 to any port 23
-ufw deny from 192.168.20.0/24 to any port icmp     
+ufw allow from 192.168.10.20 to any port 22      # SSH (management)
+ufw allow from 192.168.10.20 to any port 27017   # MongoDB (DB access)
+ufw allow from 192.168.10.20 to any port 23      # Telnet (lab demo)
+ufw deny from 192.168.20.0/24 to any port icmp    # block ICMP from SW2 (lab requirement)
+ufw --force enable
 
 # Generate RSA keys + certs (Secure-Sockets lab)
 mkdir -p /etc/ssl/sirs
@@ -60,13 +61,11 @@ keytool -import -trustcacerts -file user.pem -keypass changeme -storepass change
 keytool -import -trustcacerts -file server.pem -keypass changeme -storepass changeme -keystore usertruststore.jks -noprompt
 
 echo "=== Phase 2: schedule network switch (runs after reboot into host-only) ==="
-# discover interface ONCE, export for the service
 IF=$(ip -br link | awk '/^e[ns][^:]+[[:space:]]+UP/ {print $1; exit}')
 export IF
 cat > /usr/local/bin/finish-db.sh <<EOF
 #!/bin/bash
 set -euo pipefail
-# use the variable exported by the parent script
 cat > /etc/netplan/01-sw1.yaml <<EOF2
 network:
   version: 2
@@ -84,7 +83,7 @@ systemctl restart mongod
 ufw --force reset
 ufw default deny incoming
 ufw default allow outgoing
-ufw allow from 192.168.10.0/24 to any port 27017
+ufw allow from 192.168.10.20 to any port 27017
 ufw --force enable
 mongosh mongodb://192.168.10.10:27017 --eval 'db.adminCommand("ping")'
 echo "MongoDB ready on isolated 192.168.10.10:27017"
