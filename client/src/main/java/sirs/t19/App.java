@@ -147,18 +147,11 @@ public class App {
     System.out.println("--- New Citizen Report ---");
     String category = reader.readLine("Category: ").trim();
     String location = reader.readLine("Location: ").trim();
-    double lat = 0, lon = 0;
-    try {
-      lat = Double.parseDouble(reader.readLine("Latitude: ").trim());
-      lon = Double.parseDouble(reader.readLine("Longitude: ").trim());
-    } catch (Exception e) {
-      return;
-    }
     String desc = reader.readLine("Description: ").trim();
 
     try {
       new File("client/reports").mkdirs();
-      Report r = new Report(category, location, lat, lon, desc);
+      Report r = new Report(category, location, desc);
       r.saveReport();
       System.out.println("Report saved: client/reports/" + r.getReportId() + ".json");
     } catch (Exception e) {

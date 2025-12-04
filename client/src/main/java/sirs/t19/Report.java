@@ -14,14 +14,13 @@ public class Report {
   private final double longitude;
   private final String description;
 
-  public Report(String category, String location, double latitude, double longitude,
-      String description) {
+  public Report(String category, String location, String description) {
     this.reportId = "echo_" + String.format("%05d", (int) (Math.random() * 100000));
     this.timestamp = Instant.now().toString();
-    this.category = category;
+    this.latitude = (Math.random() * 180) - 90;
+    this.longitude = (Math.random() * 360) - 90;
     this.location = location;
-    this.latitude = latitude;
-    this.longitude = longitude;
+    this.category = category;
     this.description = description;
   }
 
