@@ -1,21 +1,25 @@
 package sirs.t19;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import org.jline.builtins.Completers.FileNameCompleter;
 import org.jline.reader.Completer;
+import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.ParsedLine;
+import org.jline.reader.UserInterruptException;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 public class App {
 
-  private static String currentUser = "";
+  private static String currentUserId = "";
+  private static String currentUsername = "";
+  private static String currentRole = "";
 
   public static void main(String[] args) {
     try {
@@ -23,21 +27,24 @@ public class App {
 
       // Completers
       Completer fileCompleter = new FileNameCompleter();
-      Completer guestCompleter = new StringsCompleter("login", "register", "help", "exit", "quit");
+      Completer guestCompleter = new StringsCompleter("login", "register", "help", "exit");
 
-      // User mode supports commands + file paths
-      Completer userCompleter = new ArgumentCompleter(new StringsCompleter("protect", "unprotect",
-          "check", "report", "logout", "help", "exit", "quit"), fileCompleter);
+      // Citizen: report (full flow), protect/unprotect (manual files), check (manual file)
+      Completer citizenCompleter = new ArgumentCompleter(
+          new StringsCompleter("report", "protect", "unprotect", "check", "logout", "help", "exit"),
+          fileCompleter);
 
-      Completer dynamicCompleter = new Completer() {
-        @Override
-        public void complete(LineReader reader, ParsedLine line,
-            List<org.jline.reader.Candidate> candidates) {
-          if (currentUser.isEmpty()) {
-            guestCompleter.complete(reader, line, candidates);
-          } else {
-            userCompleter.complete(reader, line, candidates);
-          }
+      // Municipality: analyze (full flow), protect/unprotect (manual files), check (manual file)
+      Completer municipalityCompleter = new ArgumentCompleter(new StringsCompleter("analyze",
+          "protect", "unprotect", "check", "logout", "help", "exit"), fileCompleter);
+
+      Completer dynamicCompleter = (reader, line, candidates) -> {
+        if (currentUserId.isEmpty()) {
+          guestCompleter.complete(reader, line, candidates);
+        } else if ("municipality".equalsIgnoreCase(currentRole)) {
+          municipalityCompleter.complete(reader, line, candidates);
+        } else {
+          citizenCompleter.complete(reader, line, candidates);
         }
       };
 
@@ -45,17 +52,18 @@ public class App {
           LineReaderBuilder.builder().terminal(terminal).completer(dynamicCompleter).build();
 
       System.out.println("--------------------------------------------------");
-      System.out.println("      CivicEcho Client Terminal (v11.0)           ");
+      System.out.println("      CivicEcho Client Terminal (v14.0)           ");
       System.out.println("--------------------------------------------------");
 
       while (true) {
-        String prompt = currentUser.isEmpty() ? "CivicEcho> " : "CivicEcho-" + currentUser + "> ";
-        String line;
+        String prompt = currentUserId.isEmpty() ? "CivicEcho> "
+            : "CivicEcho (" + currentRole + ")-" + currentUsername + "> ";
 
+        String line;
         try {
           line = lineReader.readLine(prompt).trim();
-        } catch (Exception e) {
-          break;
+        } catch (UserInterruptException | EndOfFileException e) {
+          return;
         }
 
         if (line.isEmpty())
@@ -66,70 +74,106 @@ public class App {
         String[] argsList = Arrays.copyOfRange(tokens, 1, tokens.length);
 
         try {
-          if (currentUser.isEmpty()) {
+          if (currentUserId.isEmpty()) {
+            // --- GUEST ---
             switch (command) {
               case "exit":
                 return;
               case "help":
-                printAuthHelp();
+                System.out.println("Commands: login, register");
                 break;
               case "login":
                 if (argsList.length < 2)
                   System.err.println("Usage: login <user> <pass>");
                 else {
-                  if (SecureLibrary.loginUser(argsList[0], argsList[1])) {
-                    currentUser = argsList[0];
+                  String uuid = SecureLibrary.loginUser(argsList[0], argsList[1]);
+                  if (uuid != null) {
+                    currentUserId = uuid;
+                    currentUsername = argsList[0];
+                    currentRole = SecureLibrary.getUserRole(uuid);
                     System.out.println("Login successful.");
                   } else
-                    System.err.println("Wrong credentials.");
+                    System.err.println("Invalid credentials.");
                 }
                 break;
               case "register":
                 if (argsList.length < 3)
-                  System.err.println("Usage: register <user> <pass> <role:citizen|municipality>");
+                  System.err.println("Usage: register <user> <pass> <role>");
                 else {
-                  String id = SecureLibrary.registerUser(argsList[0], argsList[1], argsList[2]);
-                  if (id != null) {
-                    currentUser = argsList[0]; // Set to username or ID depending on preference
-                    System.out.println("Registered. ID: " + id);
-                  } else
-                    System.err.println("User exists.");
+                  String uuid = SecureLibrary.registerUser(argsList[0], argsList[1], argsList[2]);
+                  if (uuid != null) {
+                    currentUserId = uuid;
+                    currentUsername = argsList[0];
+                    currentRole = argsList[2];
+                    System.out.println("Registered. UUID: " + uuid);
+                  }
                 }
                 break;
               default:
                 System.out.println("Please login.");
             }
           } else {
+            // --- LOGGED IN ---
             switch (command) {
               case "exit":
                 return;
               case "logout":
-                currentUser = "";
+                currentUserId = "";
+                currentUsername = "";
+                currentRole = "";
                 break;
+
+              // --- FULL FLOW COMMANDS ---
               case "report":
-                handleReportCreation(lineReader);
+                if ("municipality".equals(currentRole))
+                  System.err.println("Municipalities cannot submit reports.");
+                else
+                  handleReportFlow(lineReader);
                 break;
+
+              case "analyze":
+                if (!"municipality".equals(currentRole))
+                  System.err.println("Access Denied.");
+                else
+                  handleAnalyze(lineReader);
+                break;
+
+              // --- MANUAL FILE COMMANDS ---
               case "protect":
                 if (argsList.length < 2)
-                  System.err.println("Usage: protect <in> <server_out>");
+                  System.err.println("Usage: protect <in_file> <out_file>");
                 else
-                  SecureLibrary.protect(argsList[0], argsList[1], currentUser);
+                  SecureLibrary.protect(argsList[0], argsList[1], currentUserId);
                 break;
+
               case "unprotect":
                 if (argsList.length < 2)
-                  System.err.println("Usage: unprotect <server_in> <local_out>");
+                  System.err.println("Usage: unprotect <in_file> <out_file>");
                 else
-                  SecureLibrary.unprotect(argsList[0], argsList[1], currentUser);
+                  SecureLibrary.unprotect(argsList[0], argsList[1], currentUserId);
                 break;
+
               case "check":
                 if (argsList.length < 1)
-                  System.err.println("Usage: check <in>");
-                else
-                  SecureLibrary.check(argsList[0]);
+                  System.err.println("Usage: check <in_file> OR check <server_report_id>");
+                else {
+                  // Quick hack to distinguish file vs ID: try to find file, else check remote
+                  java.io.File f = new java.io.File(argsList[0]);
+                  if (f.exists()) {
+                    System.out.println("Checking local file...");
+                    SecureLibrary.check(argsList[0]);
+                  } else {
+                    System.out.println("Checking remote report ID...");
+                    SecureLibrary.checkRemote(argsList[0]);
+                  }
+                }
                 break;
+
               case "help":
-                printUserHelp();
+                System.out.println("Commands: protect, unprotect, check, logout, "
+                    + (currentRole.equals("municipality") ? "analyze" : "report"));
                 break;
+
               default:
                 System.err.println("Unknown command.");
             }
@@ -143,27 +187,57 @@ public class App {
     }
   }
 
-  private static void handleReportCreation(LineReader reader) {
+  private static void handleReportFlow(LineReader reader) {
     System.out.println("--- New Citizen Report ---");
     String category = reader.readLine("Category: ").trim();
     String location = reader.readLine("Location: ").trim();
     String desc = reader.readLine("Description: ").trim();
 
     try {
-      new File("client/reports").mkdirs();
-      Report r = new Report(category, location, desc);
-      r.saveReport();
-      System.out.println("Report saved: client/reports/" + r.getReportId() + ".json");
+      // 1. Create Report with UserID
+      Report r = new Report(category, location, desc, currentUserId);
+
+      // 2. Convert to JsonObject
+      JsonObject reportJson = new Gson().fromJson(r.toJson(), JsonObject.class);
+
+      // 3. Option to save local plaintext (for debugging/grading manual protect)
+      r.saveToLocalFile("client/reports/" + r.getReportId() + ".json");
+
+      // 4. Protect & Submit
+      SecureLibrary.protectAndSubmit(reportJson, currentUserId);
+
     } catch (Exception e) {
-      System.err.println("Failed: " + e.getMessage());
+      System.err.println("Report Failed: " + e.getMessage());
     }
   }
 
-  private static void printAuthHelp() {
-    System.out.println("Commands: login, register");
-  }
+  private static void handleAnalyze(LineReader reader) {
+    try {
+      List<String> reports = SecureLibrary.getPendingReports(currentUserId);
+      if (reports.isEmpty()) {
+        System.out.println("No pending reports.");
+        return;
+      }
+      for (String rid : reports) {
+        System.out.println("\nReviewing Report: " + rid);
+        try {
+          JsonObject data = SecureLibrary.fetchAndDecryptReport(rid, currentUserId);
+          System.out.println("Description: " + data.get("description").getAsString());
 
-  private static void printUserHelp() {
-    System.out.println("Commands: report, protect, unprotect, check, logout");
+          String action = "";
+          while (!action.equals("APPROVED") && !action.equals("DECLINED")
+              && !action.equals("SKIP")) {
+            action = reader.readLine("Action (APPROVED/DECLINED/SKIP): ").trim().toUpperCase();
+          }
+          if (!action.equals("SKIP"))
+            SecureLibrary.submitDecision(rid, action, currentUserId);
+
+        } catch (Exception e) {
+          System.err.println("Skipping " + rid + ": " + e.getMessage());
+        }
+      }
+    } catch (Exception e) {
+      System.err.println("Analyze Error: " + e.getMessage());
+    }
   }
 }

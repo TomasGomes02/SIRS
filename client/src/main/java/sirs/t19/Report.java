@@ -13,8 +13,9 @@ public class Report {
   private final double latitude;
   private final double longitude;
   private final String description;
+  private final String userId;
 
-  public Report(String category, String location, String description) {
+  public Report(String category, String location, String description, String userId) {
     this.reportId = "echo_" + String.format("%05d", (int) (Math.random() * 100000));
     this.timestamp = Instant.now().toString();
     this.latitude = (Math.random() * 180) - 90;
@@ -22,6 +23,7 @@ public class Report {
     this.location = location;
     this.category = category;
     this.description = description;
+    this.userId = userId;
   }
 
   public String toJson() {
@@ -29,12 +31,17 @@ public class Report {
         "{\n" + "  \"report_id\": \"%s\",\n" + "  \"timestamp\": \"%s\",\n"
             + "  \"category\": \"%s\",\n" + "  \"location\": \"%s\",\n" + "  \"coordinates\": {\n"
             + "    \"latitude\": %.6f,\n" + "    \"longitude\": %.6f\n" + "  },\n"
-            + "  \"description\": \"%s\"\n" + "}",
-        reportId, timestamp, category, location, latitude, longitude, description);
+            + "  \"description\": \"%s\",\n" + "  \"user_id\": \"%s\"\n" + "}",
+        reportId, timestamp, category, location, latitude, longitude, description, userId);
   }
 
-  public void saveReport() throws IOException {
-    File file = new File("client/reports/" + reportId + ".json");
+  // Helper to save raw plaintext for manual 'protect' command testing
+  public void saveToLocalFile(String filename) throws IOException {
+    File file = new File(filename);
+    // Ensure parent directories exist
+    if (file.getParentFile() != null) {
+      file.getParentFile().mkdirs();
+    }
     try (FileWriter w = new FileWriter(file)) {
       w.write(toJson());
     }

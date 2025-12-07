@@ -1,0 +1,33 @@
+Users: {
+    userId: {
+        "name": "value",
+        "password": "value",
+        "pubkey": "value",
+        "role": "citizen" | "municipality",
+        "nonce": "counter"
+    }
+}
+
+Reports: {
+    reportId: {
+        ciphertext: { (Tudo dentro do ciphertext esta encryptado na db)
+            "report_id": "echo_xxxxx",
+            "timestamp": "yyyy-MM-ddTHH:mm:ss:msZ",
+            "category": "maybe a premade list",
+            "location": "also maybe a premade list",
+            "coordinates": {
+                "latitude": XX.XXXXX,
+                "longitude": -XX.XXXXX
+            },
+            "description": "user input here",
+            "user_id": "has to match metadata id"
+        }
+        "metadata": {
+            "user_id": "can be used to check for spam",
+            "nonce": "counter saved on bd on a per-user basis",
+            "recipients": ["list of all municipalities/users pubkey"],
+            "status": "WAITING | APPROVED | DECLINED"
+        },
+        "signature": "report signed with user privkey"
+    }
+}
