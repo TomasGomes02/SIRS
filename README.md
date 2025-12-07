@@ -31,7 +31,7 @@ To see the project in action, it is necessary to setup a virtual environment, wi
 
 The following diagram shows the networks and machines:
 
-![Figure 1 - Network diagram](img/diagrama_sirs_v2.png)
+![Figure 1 - Network diagram](img/diagrama_sirs_v3.png)
 
 ### Prerequisites
 
@@ -102,7 +102,7 @@ ping -c 3 google.com
 3. Verify reachability inside SW1:
 
 ```sh
-ping -c 3 192.168.10.1
+ping -c 3 192.168.10.0
 ```
 
 To verify database installation:
