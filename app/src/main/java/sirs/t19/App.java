@@ -81,22 +81,116 @@ public class App {
       if (line == null)
         return;
 
-      if (line.startsWith("REGISTER ")) {
-        String[] parts = line.split(" ");
-        if (parts.length == 4) {
-          db.registerUser(parts[1], parts[2], parts[3]);
-          out.println("OK");
-        } else
-          out.println("ERROR Format");
-      } else if (line.startsWith("SUBMIT ")) {
-        try {
-          processReport(line.substring(7));
-          out.println("OK");
-        } catch (Exception e) {
-          out.println("ERROR " + e.getMessage());
+      System.out.println("CMD: " + line); // Debug logging
+
+      String[] parts = line.split(" ");
+      String cmd = parts[0];
+
+      try {
+        switch (cmd) {
+          case "REGISTER":
+            // REGISTER <user> <pass> <role> <pubkey>
+            if (parts.length == 5) {
+              try {
+                String newId = db.registerUser(parts[1], parts[2], parts[3], parts[4]);
+                // Send the new ID back to the client
+                out.println(newId);
+              } catch (Exception e) {
+                out.println("ERROR " + e.getMessage());
+              }
+            } else {
+              out.println("ERROR Format");
+            }
+            break;
+
+          case "LOGIN":
+            // LOGIN <user> <pass>
+            if (parts.length == 3) {
+              String uuid = db.loginUser(parts[1], parts[2]);
+              out.println(uuid != null ? uuid : "ERROR Creds");
+            } else
+              out.println("ERROR Format");
+            break;
+
+          case "GET_ROLE":
+            // GET_ROLE <uid>
+            if (parts.length == 2) {
+              out.println(db.getUserRole(parts[1]));
+            } else
+              out.println("ERROR Format");
+            break;
+
+          case "GET_NONCE":
+            // GET_NONCE <uid>
+            if (parts.length == 2) {
+              out.println(db.getNextNonce(parts[1]));
+            } else
+              out.println("ERROR Format");
+            break;
+
+          case "GET_PUBKEY":
+            // GET_PUBKEY <uid>
+            if (parts.length == 2) {
+              PublicKey key = db.getUserPublicKey(parts[1]);
+              if (key != null)
+                out.println(Base64.getEncoder().encodeToString(key.getEncoded()));
+              else
+                out.println("ERROR Not Found");
+            } else
+              out.println("ERROR Format");
+            break;
+
+          case "SUBMIT":
+            // SUBMIT <json>
+            try {
+              processReport(line.substring(7));
+              out.println("OK");
+            } catch (Exception e) {
+              e.printStackTrace();
+              out.println("ERROR " + e.getMessage());
+            }
+            break;
+
+          case "GET_PENDING_REPORTS":
+            // GET_PENDING_REPORTS <requester_id>
+            // Only allow if requester is municipality? (Simplified for now)
+            if (parts.length == 2 && "municipality".equals(db.getUserRole(parts[1]))) {
+              out.println(String.join(",", db.getPendingReports()));
+            } else {
+              out.println("ERROR Access Denied or No Reports");
+            }
+            break;
+
+          case "GET_REPORT":
+            // GET_REPORT <report_id>
+            // Access Control: If status=WAITING, ensure user is Municipality or Author?
+            // (Simplification: Server serves data, encryption handles confidentiality)
+            if (parts.length == 2) {
+              String json = db.getReportJson(parts[1]);
+              out.println(json != null ? json : "ERROR Not Found");
+            } else
+              out.println("ERROR Format");
+            break;
+
+          case "UPDATE_STATUS":
+            // UPDATE_STATUS <report_id> <status> <municipality_id>
+            if (parts.length == 4) {
+              if ("municipality".equals(db.getUserRole(parts[3]))) {
+                db.updateReportStatus(parts[1], parts[2]);
+                out.println("OK");
+              } else {
+                out.println("ERROR Access Denied");
+              }
+            } else
+              out.println("ERROR Format");
+            break;
+
+          default:
+            out.println("ERROR Unknown Command");
         }
-      } else
-        out.println("ERROR Unknown");
+      } catch (Exception e) {
+        out.println("ERROR " + e.getMessage());
+      }
     } catch (IOException e) {
       System.err.println("IO Error: " + e.getMessage());
     }
@@ -105,25 +199,41 @@ public class App {
   private static void processReport(String json) throws Exception {
     Gson gson = new Gson();
     JsonObject envelope = gson.fromJson(json, JsonObject.class);
-    JsonObject meta = envelope.getAsJsonObject("metadata");
+
+    // envelope format might be: { "report_id": { "metadata":..., "ciphertext":... } }
+    // OR just { "metadata":..., "ciphertext":... } depending on how client sends it.
+    // The updated client sends: { "report_id": { ...envelope... } }
+
+    // We need to extract the inner envelope to verify signature
+    String reportId = envelope.keySet().iterator().next(); // Get the first key (Report ID)
+    JsonObject inner = envelope.getAsJsonObject(reportId);
+
+    JsonObject meta = inner.getAsJsonObject("metadata");
     String uid = meta.get("author_id").getAsString();
     long nonce = meta.get("nonce").getAsLong();
 
+    // 1. Verify User Exists
     PublicKey pub = db.getUserPublicKey(uid);
     if (pub == null)
       throw new SecurityException("User not found");
 
+    // 2. Verify Nonce (Replay Protection)
     if (!db.validateAndAdvanceNonce(uid, nonce))
-      throw new SecurityException("Replay Attack");
+      throw new SecurityException("Invalid Nonce (Replay Attack)");
 
-    String data = meta.toString() + envelope.get("recipients").toString()
-        + envelope.get("ciphertext").getAsString();
+    // 3. Verify Signature
+    // Reconstruct signed data: metadata + recipients + ciphertext
+    String data = meta.toString() + inner.get("recipients").toString()
+        + inner.get("ciphertext").getAsString();
+
     Signature rsa = Signature.getInstance("SHA256withRSA");
     rsa.initVerify(pub);
     rsa.update(data.getBytes());
-    if (!rsa.verify(Base64.getDecoder().decode(envelope.get("signature").getAsString())))
+
+    if (!rsa.verify(Base64.getDecoder().decode(inner.get("signature").getAsString())))
       throw new SecurityException("Invalid Signature");
 
-    db.storeReport(envelope, "rep_" + nonce);
+    // 4. Store (Store the inner envelope keyed by ID)
+    db.storeReport(inner, reportId);
   }
 }

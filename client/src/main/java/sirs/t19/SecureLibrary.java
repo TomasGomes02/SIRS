@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
@@ -278,19 +277,28 @@ public class SecureLibrary {
 
   public static String registerUser(String username, String password, String role)
       throws Exception {
+    // 1. Generate KeyPair
     KeyPair pair = CryptoUtils.generateRSAKeyPair();
-    String userId = UUID.randomUUID().toString();
-    saveLocalPrivateKey(userId, pair.getPrivate());
-
     String pubKeyB64 = Base64.getEncoder().encodeToString(pair.getPublic().getEncoded());
-    String cmd =
-        String.format("REGISTER %s %s %s %s %s", username, password, role, userId, pubKeyB64);
-    String resp = sendNetworkCommand(cmd);
-    if (!"OK".equals(resp)) {
-      new File(PRIVATE_KEY_DIR + "/" + userId + ".key").delete();
-      throw new Exception("Registration Failed: " + resp);
+
+    // 2. Send Info to Server
+    // Protocol: REGISTER <username> <password> <role> <pubkey>
+    String cmd = String.format("REGISTER %s %s %s %s", username, password, role, pubKeyB64);
+
+    String response = sendNetworkCommand(cmd);
+
+    // 3. Process Response
+    if (response.startsWith("ERROR")) {
+      throw new Exception("Registration Failed: " + response);
     }
-    return userId;
+
+    // Server returns the new MongoDB ObjectId
+    String newUserId = response.trim();
+
+    // 4. Save Private Key Locally using the Server-Provided ID
+    saveLocalPrivateKey(newUserId, pair.getPrivate());
+
+    return newUserId;
   }
 
   public static String loginUser(String username, String password) throws Exception {
