@@ -83,7 +83,7 @@ curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1
 
 6. When script finishes, exit ssh and power-off VM
 
-7. [Isolate network] VM Settings -> Network -> Adapter 1 -> Attached to: Host-only Adapter #2 (192.168.10.1/24)
+7. [Isolate network] VM Settings -> Network -> Adapter 1 -> Attached to: Host-only Adapter #2 (192.168.10.0/24)
 
 To verify network isolation:
 
