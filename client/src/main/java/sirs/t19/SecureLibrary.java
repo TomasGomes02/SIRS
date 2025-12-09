@@ -1,6 +1,7 @@
 package sirs.t19;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -16,6 +17,8 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
+import java.security.cert.CertificateFactory;
+import java.security.cert.Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
@@ -40,17 +43,27 @@ public class SecureLibrary {
 
   static {
     try {
-      InputStream trustInput =
-          SecureLibrary.class.getClassLoader().getResourceAsStream("client_truststore.jks");
-      if (trustInput != null) {
-        KeyStore trustStore = KeyStore.getInstance("JKS");
-        trustStore.load(trustInput, "clientpass".toCharArray());
-        TrustManagerFactory tmf =
-            TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+      InputStream caInput = SecureLibrary.class.getClassLoader().getResourceAsStream("db-ca.pem");
+      
+      if (caInput != null) {
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        Certificate dbCaCert = cf.generateCertificate(caInput);
+        
+        KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        trustStore.load(null, null);
+        trustStore.setCertificateEntry("db-ca", dbCaCert);
+        
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(
+            TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(trustStore);
+        
         SSLContext sslContext = SSLContext.getInstance("TLS");
         sslContext.init(null, tmf.getTrustManagers(), null);
         SSLContext.setDefault(sslContext);
+        
+        System.out.println("Client: DB CA loaded, will verify App VM certificate");
+      } else {
+        System.err.println("ERROR: db-ca.pem not found in classpath!");
       }
     } catch (Exception e) {
       e.printStackTrace();
