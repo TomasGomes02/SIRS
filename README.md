@@ -164,13 +164,13 @@ ping -c 3 google.com
 3. Verify reachability inside SW1:
 
 ```sh
-ping -c 3 192.168.10.10
+ping -c 3 192.168.10.0
 ```
 
 4. Verify reachability inside SW2:
 
 ```sh
-ping -c 3 192.168.10.20
+ping -c 3 192.168.20.0
 ```
 
 To verify application services:
