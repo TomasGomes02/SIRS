@@ -1,69 +1,80 @@
 #!/bin/bash
-# init-db-server.sh  – Ubuntu Server 22.04  (MongoDB role)
+# init-rate-limiter-vm.sh – Ubuntu Server 22.04 (Rate-Limiter role, minimal)
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
-export NEEDRESTART_MODE=a
 
-echo "=== Phase 1: install MongoDB 7.0 (while NAT is up) ==="
-apt-get update && apt-get upgrade -y
-curl -fsSL https://pgp.mongodb.com/server-7.0.asc   | gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
-echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] \
-https://repo.mongodb.org/apt/ubuntu   jammy/mongodb-org/7.0 multiverse" \
-> /etc/apt/sources.list.d/mongodb-org-7.0.list
-apt-get update
-apt-get install -y mongodb-org
-systemctl enable --now mongod
-
-echo "=== Phase 2: schedule network switch (runs after reboot into host-only) ==="
+# Configurations
+SHARED_NAME='T19-CivicEcho/auth/jar'   # VBox label
+MOUNT_POINT='/media/sf_civicecho'
+APP_DIR='/opt/civicecho/app'
+AUTH_JAR='auth-1.0-SNAPSHOT.jar'
+AUTH_IP='192.168.20.10'          
+DB_IP='192.168.10.10'           
 IF=$(ip -br link | awk '/^e[ns][^:]+[[:space:]]+UP/ {print $1; exit}')
-export IF
-cat > /usr/local/bin/finish-db.sh <<EOF
+
+
+echo '=== 1. install JDK 25 ==='
+apt-get update && apt-get upgrade -y
+wget https://download.java.net/java/early_access/jdk25/19/GPL/openjdk-25-ea+19_linux-x64_bin.tar.gz
+mkdir -p /opt/jdk
+tar -xf openjdk-25-ea+19_linux-x64_bin.tar.gz -C /opt/jdk --strip-components=1
+update-alternatives --install /usr/bin/java java /opt/jdk/bin/java 2500
+rm openjdk-25-ea+19_linux-x64_bin.tar.gz
+apt-get install -y virtualbox-guest-utils
+
+echo '=== 2. user & shared folder ==='
+useradd -m -s /bin/bash civicecho 2>/dev/null || true
+mkdir -p "$APP_DIR" "$MOUNT_POINT"
+usermod -aG vboxsf civicecho
+mount -t vboxsf "$SHARED_NAME" "$MOUNT_POINT" || {
+  echo 'ERROR: mount failed – install Guest Additions'; exit 1
+}
+
+cp "$MOUNT_POINT/$AUTH_JAR" "$APP_DIR/"
+
+chown -R civicecho:civicecho "$APP_DIR"
+
+echo '=== 3. static IP on SW2 ==='
+cat >/usr/local/bin/finish-rate-limiter.sh <<EOF
 #!/bin/bash
-set -euo pipefail
-cat > /etc/netplan/01-sw1.yaml <<EOF2
+cat >/etc/netplan/02-sw2.yaml <<EOF2
 network:
   version: 2
   ethernets:
     $IF:
       dhcp4: no
-      addresses: [192.168.20.10/24]
+      addresses: [$AUTH_IP/24]
       nameservers:
         addresses: [1.1.1.1, 8.8.8.8]
 EOF2
-chmod 600 /etc/netplan/01-sw1.yaml
+chmod 600 /etc/netplan/02-sw2.yaml
 netplan apply
-sed -i 's/bindIp.*/bindIp: 192.168.20.10/' /etc/mongod.conf
-systemctl restart mongod
-ufw --force reset
-ufw default deny incoming
-ufw default allow outgoing
-ufw allow from 192.168.10.20 to any port 27017
-ufw --force enable
-mongosh mongodb://192.168.20.0:27017/civicecho-tokens --eval 'db.adminCommand("ping");
-db.createCollection("tokens")'
-echo "MongoDB ready on isolated 192.168.20.10:27017"
+echo "Rate-Limiter ready – run: sudo -u civicecho -i && cd $APP_DIR && /opt/jdk/bin/java -jar $AUTH_JAR"
 EOF
-chmod +x /usr/local/bin/finish-db.sh
-
-cat > /etc/systemd/system/finish-db-config.service <<'EOF'
+chmod +x /usr/local/bin/finish-rate-limiter.sh
+cat >/etc/systemd/system/finish-rate-limiter-config.service <<'EOF'
 [Unit]
-Description=Finish DB isolation config
+Description=Finish Rate-Limiter isolation config
 After=network-online.target
 Wants=network-online.target
-
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/local/bin/finish-db.sh
-StandardOutput=journal
-StandardError=journal
-
+ExecStart=/usr/local/bin/finish-rate-limiter.sh
 [Install]
 WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
-systemctl enable finish-db-config.service
+systemctl enable finish-rate-limiter-config.service
 
-echo "Phase 1 complete."
-echo "Please power-off the VM, change NIC to Host-only #2, then boot."
-echo "Phase 2 will run automatically and finish configuration."
+
+echo '=== 4. firewall ==='
+ufw --force reset
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow from "$AUTH_IP" to "$DB_IP" port 27017 proto tcp
+ufw --force enable
+
+echo 'Done. After isolating the VM:'
+echo '  sudo -u civicecho -i'
+echo '  cd $APP_DIR && /opt/jdk/bin/java -jar $AUTH_JAR'
