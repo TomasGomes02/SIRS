@@ -54,7 +54,8 @@ ufw default allow outgoing
 ufw allow from 192.168.10.20 to any port 27017
 ufw --force enable
 mongosh mongodb://192.168.10.10:27017/civicecho --eval 'db.adminCommand("ping");
-db.createCollection("reports")'
+db.createCollection("reports");
+db.createCollection("users")'
 echo "MongoDB ready on isolated 192.168.10.10:27017"
 EOF
 chmod +x /usr/local/bin/finish-db.sh
