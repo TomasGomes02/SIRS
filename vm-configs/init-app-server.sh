@@ -4,7 +4,7 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 # --- Configurations ---
-SHARED_NAME="T19-CivicEcho/app/jar" # VirtualBox shared folder name          
+SHARED_NAME="jar" # VirtualBox shared folder name          
 MOUNT_POINT="/media/sf_civicecho" # Mount point for shared folder
 APP_DIR="/opt/civicecho/app" # Application directory (inside VM)
 DB_IP="192.168.10.10"
@@ -17,26 +17,20 @@ IF=$(ip -br link | awk '/^e[ns][^:]+[[:space:]]+UP/ {print $1; exit}')
 
 echo "=== 1. install JDK 25 ==="
 apt-get update && apt-get upgrade -y
-wget https://download.java.net/java/early_access/jdk25/19/GPL/openjdk-25-ea+19_linux-x64_bin.tar.gz
-mkdir -p /opt/jdk
-tar -xf openjdk-25-ea+19_linux-x64_bin.tar.gz -C /opt/jdk --strip-components=1
-update-alternatives --install /usr/bin/java java /opt/jdk/bin/java 2500
-rm openjdk-25-ea+19_linux-x64_bin.tar.gz
 
-
-apt-get install -y virtualbox-guest-utils
+apt-get install -y openjdk-25-jdk virtualbox-guest-utils ufw
 
 
 echo "=== 2. user & shared folder ==="
-useradd -m -s /bin/bash civicecho 2>/dev/null || true
+useradd -m -s /bin/bash $USER 2>/dev/null || true
 mkdir -p "$APP_DIR" "$MOUNT_POINT"
-usermod -aG vboxsf civicecho
+usermod -aG vboxsf $USER
 mount -t vboxsf "$SHARED_NAME" "$MOUNT_POINT" || {
   echo "ERROR: mount failed – install Guest Additions on VM"
   exit 1
 }
-cp "$MOUNT_POINT"/{app.p12,server_truststore.jks,$JAR_NAME} "$APP_DIR/"
-chown -R civicecho:civicecho "$APP_DIR"
+cp "$MOUNT_POINT/$JAR_NAME" "$APP_DIR/"
+chown -R $USER:$USER "$APP_DIR"
 
 
 echo "=== 3. firewall ==="

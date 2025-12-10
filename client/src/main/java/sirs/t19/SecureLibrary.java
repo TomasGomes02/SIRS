@@ -1,7 +1,6 @@
 package sirs.t19;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -17,8 +16,6 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
-import java.security.cert.CertificateFactory;
-import java.security.cert.Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
@@ -37,121 +34,154 @@ import com.google.gson.JsonObject;
 public class SecureLibrary {
 
   private static final String PRIVATE_KEY_DIR = "keys";
-  private static final String SERVER_HOST =
-      System.getenv("CIVIC_SERVER_HOST") != null ? System.getenv("CIVIC_SERVER_HOST") : "localhost";
-  private static final int SERVER_PORT = 8443;
+
+  // -- IPs Config --
+  private static final String APP_HOST =
+      System.getenv("APP_HOST") != null ? System.getenv("APP_HOST") : "192.168.10.10";
+
+  private static final String AUTH_HOST =
+      System.getenv("AUTH_HOST") != null ? System.getenv("AUTH_HOST") : "192.168.20.10";
+
+  private static final int PORT = 8443;
 
   static {
     try {
-      InputStream caInput = SecureLibrary.class.getClassLoader().getResourceAsStream("db-ca.pem");
-      
-      if (caInput != null) {
-        CertificateFactory cf = CertificateFactory.getInstance("X.509");
-        Certificate dbCaCert = cf.generateCertificate(caInput);
-        
-        KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-        trustStore.load(null, null);
-        trustStore.setCertificateEntry("db-ca", dbCaCert);
-        
-        TrustManagerFactory tmf = TrustManagerFactory.getInstance(
-            TrustManagerFactory.getDefaultAlgorithm());
+      InputStream trustInput =
+          SecureLibrary.class.getClassLoader().getResourceAsStream("client_truststore.jks");
+      if (trustInput != null) {
+        KeyStore trustStore = KeyStore.getInstance("JKS");
+        trustStore.load(trustInput, "clientpass".toCharArray());
+        TrustManagerFactory tmf =
+            TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(trustStore);
-        
         SSLContext sslContext = SSLContext.getInstance("TLS");
         sslContext.init(null, tmf.getTrustManagers(), null);
         SSLContext.setDefault(sslContext);
-        
-        System.out.println("Client: DB CA loaded, will verify App VM certificate");
-      } else {
-        System.err.println("ERROR: db-ca.pem not found in classpath!");
       }
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
-  // --- MANUAL COMMANDS (File Based) ---
+  // --- AUTOMATED FLOW ---
 
   /**
-   * Encrypts a local file and saves the envelope to an output file. This corresponds to the
-   * 'protect <infile> <outfile>' command.
+   * Encrypts, Signs, Submits to App Server, then Refreshes Token with Auth Server. Returns the NEW
+   * Token.
    */
-  public static void protect(String inputFile, String outputFile, String userId) throws Exception {
-    // 1. Read Input File
-    Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-    JsonObject reportData;
-    try (FileReader reader = new FileReader(inputFile)) {
-      reportData = gson.fromJson(reader, JsonObject.class);
-    }
-
-    // 2. Build Envelope (Reusing the core logic logic)
-    JsonObject envelope = createProtectedEnvelope(reportData, userId);
-
-    // 3. Save to Output File
-    try (FileWriter w = new FileWriter(outputFile)) {
-      gson.toJson(envelope, w);
-    }
-    System.out.println("File protected and saved to: " + outputFile);
-  }
-
-  /**
-   * Decrypts a local envelope file and saves the plaintext to an output file. This corresponds to
-   * the 'unprotect <infile> <outfile>' command.
-   */
-  public static void unprotect(String inputFile, String outputFile, String userId)
+  public static String protectAndSubmit(JsonObject reportData, String userId, String currentToken)
       throws Exception {
-    // 1. Read Envelope File
-    Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    JsonObject envelope;
-    try (FileReader reader = new FileReader(inputFile)) {
-      envelope = gson.fromJson(reader, JsonObject.class);
-    }
 
-    // 2. Decrypt (Reusing core logic)
-    JsonObject payload = decryptEnvelope(envelope, userId);
+    // 1. Get Nonce (App Server)
+    long nonce = getNextNonce(userId);
 
-    // 3. Save to Output File
-    try (FileWriter w = new FileWriter(outputFile)) {
-      gson.toJson(payload, w);
-    }
-    System.out.println("File unprotected and saved to: " + outputFile);
-  }
+    // 2. Crypto (Create Envelope)
+    JsonObject envelope = createProtectedEnvelope(reportData, userId, nonce);
 
-  /**
-   * Checks the signature of a local envelope file. This corresponds to the 'check <infile>'
-   * command.
-   */
-  public static boolean check(String inputFile) {
-    try (FileReader reader = new FileReader(inputFile)) {
-      Gson gson = new Gson();
-      JsonObject envelope = gson.fromJson(reader, JsonObject.class);
-      return checkEnvelopeInMemory(envelope);
-    } catch (Exception e) {
-      System.err.println("Check failed: " + e.getMessage());
-      return false;
-    }
-  }
-
-  // --- AUTOMATED FLOW (Report Command) ---
-
-  public static void protectAndSubmit(JsonObject reportData, String userId) throws Exception {
-    JsonObject envelope = createProtectedEnvelope(reportData, userId);
-
-    // Wrap in root object for server submission
+    // 3. Wrap in root
     JsonObject root = new JsonObject();
     root.add(reportData.get("report_id").getAsString(), envelope);
 
-    System.out.println("Client: Submitting protected report...");
-    String response = sendNetworkCommand("SUBMIT " + new Gson().toJson(root));
+    // 4. Submit to APP SERVER with TOKEN
+    // Protocol: SUBMIT <json_data> <token>
+    System.out.println("Client: Submitting to App Server...");
+    String cmd = "SUBMIT " + new Gson().toJson(root) + " " + currentToken;
+    String response = sendAppCommand(cmd);
+
     if (!response.startsWith("OK"))
       throw new Exception("Submission failed: " + response);
+    System.out.println("App Server Accepted Report.");
 
-    System.out.println("Success! Server Response: " + response);
+    // 5. Request New Token from AUTH SERVER
+    System.out.println("Client: Requesting new token from Auth Server...");
+    String authResponse = sendAuthCommand("REQUEST " + userId);
+
+    if (authResponse.startsWith("ERROR"))
+      throw new Exception("Token Refresh Failed: " + authResponse);
+
+    // Parse response "TOKEN COUNT"
+    String[] parts = authResponse.trim().split(" ");
+    if (parts.length < 2)
+      throw new Exception("Invalid Auth Response: " + authResponse);
+
+    String newToken = parts[0];
+    String count = parts[1];
+
+    System.out.println("Client: Token refreshed. You have " + count + " tokens remaining.");
+    return newToken;
+  }
+
+  // --- AUTH UTILS ---
+
+  // Returns String[] { userId, token }
+  public static String[] registerUser(String username, String password, String role)
+      throws Exception {
+    KeyPair pair = CryptoUtils.generateRSAKeyPair();
+    String pubKeyB64 = Base64.getEncoder().encodeToString(pair.getPublic().getEncoded());
+
+    // Protocol: REGISTER <user> <pass> <role> <pubkey>
+    String cmd = String.format("REGISTER %s %s %s %s", username, password, role, pubKeyB64);
+    String response = sendAuthCommand(cmd);
+
+    if (response.startsWith("ERROR"))
+      throw new Exception("Registration Failed: " + response);
+
+    // Expects: "UUID TOKEN"
+    String[] parts = response.trim().split(" ");
+    String userId = parts[0];
+    String token = parts[1];
+
+    saveLocalPrivateKey(userId, pair.getPrivate());
+    return new String[] {userId, token};
+  }
+
+  // Returns String[] { userId, token } or null
+  public static String[] loginUser(String username, String password) throws Exception {
+    String resp = sendAuthCommand("LOGIN " + username + " " + password);
+    if (resp.startsWith("ERROR"))
+      return null;
+
+    // Expects: "UUID TOKEN"
+    String[] parts = resp.trim().split(" ");
+    return new String[] {parts[0], parts[1]};
+  }
+
+  // --- SERVER COMMANDS (Routing) ---
+
+  public static String getUserRole(String userId) throws IOException {
+    String resp = sendAppCommand("GET_ROLE " + userId);
+    return resp.startsWith("ERROR") ? "citizen" : resp.trim();
+  }
+
+  public static List<String> getPendingReports(String userId) throws Exception {
+    String resp = sendAppCommand("GET_PENDING_REPORTS " + userId);
+    if (resp.startsWith("ERROR") || resp.isEmpty())
+      return Collections.emptyList();
+    return Arrays.asList(resp.split(","));
+  }
+
+  public static JsonObject fetchAndDecryptReport(String reportId, String userId) throws Exception {
+    String jsonResp = sendAppCommand("GET_REPORT " + reportId);
+    if (jsonResp.startsWith("ERROR"))
+      throw new Exception(jsonResp);
+
+    JsonObject envelope = new Gson().fromJson(jsonResp, JsonObject.class);
+    if (!checkEnvelopeInMemory(envelope))
+      throw new Exception("Integrity Check Failed");
+    return decryptEnvelope(envelope, userId);
+  }
+
+  public static void submitDecision(String reportId, String decision, String userId)
+      throws IOException {
+    String resp =
+        sendAppCommand(String.format("UPDATE_STATUS %s %s %s", reportId, decision, userId));
+    if (!resp.startsWith("OK"))
+      throw new RuntimeException(resp);
   }
 
   public static boolean checkRemote(String reportId) {
     try {
-      String jsonResp = sendNetworkCommand("GET_REPORT " + reportId);
+      String jsonResp = sendAppCommand("GET_REPORT " + reportId);
       if (jsonResp.startsWith("ERROR")) {
         System.err.println("Report not found on server.");
         return false;
@@ -164,185 +194,78 @@ public class SecureLibrary {
     }
   }
 
-  // --- CORE LOGIC (Shared) ---
+  // --- HELPERS ---
 
-  private static JsonObject createProtectedEnvelope(JsonObject reportData, String userId)
-      throws Exception {
-    // Get Nonce from Server
-    long nonce = getNextNonce(userId);
+  private static long getNextNonce(String userId) throws IOException {
+    // Nonce is a counter in DB, represented as long here
+    String resp = sendAppCommand("GET_NONCE " + userId);
+    try {
+      return Long.parseLong(resp.trim());
+    } catch (Exception e) {
+      return 0;
+    }
+  }
 
-    // Prepare Metadata
+  private static PublicKey getPublicKeyFromServer(String userId) throws Exception {
+    String resp = sendAppCommand("GET_PUBKEY " + userId);
+    if (resp.startsWith("ERROR"))
+      return null;
+    return KeyFactory.getInstance("RSA")
+        .generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(resp)));
+  }
+
+  // --- NETWORK ROUTING ---
+
+  private static String sendAuthCommand(String cmd) throws IOException {
+    return sendNetworkCommand(AUTH_HOST, cmd);
+  }
+
+  private static String sendAppCommand(String cmd) throws IOException {
+    return sendNetworkCommand(APP_HOST, cmd);
+  }
+
+  private static String sendNetworkCommand(String host, String cmd) throws IOException {
+    SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+    try (SSLSocket socket = (SSLSocket) sf.createSocket(host, PORT);
+        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+      socket.startHandshake();
+      out.println(cmd);
+      return in.readLine();
+    }
+  }
+
+  // --- CRYPTO LOGIC ---
+
+  private static JsonObject createProtectedEnvelope(JsonObject reportData, String userId,
+      long nonce) throws Exception {
     JsonObject metadata = new JsonObject();
     metadata.addProperty("author_id", userId);
     metadata.addProperty("nonce", nonce);
     metadata.addProperty("status", "WAITING");
 
-    // Encrypt Payload
     SecretKey sessionKey = CryptoUtils.generateAESKey();
     byte[] encryptedBytes =
         CryptoUtils.encrypt(sessionKey, new Gson().toJson(reportData).getBytes());
-    String cipherTextB64 = Base64.getEncoder().encodeToString(encryptedBytes);
 
-    // Handle Recipients (Add Self)
     JsonObject recipients = new JsonObject();
     PublicKey myKey = getPublicKeyFromServer(userId);
-    if (myKey == null)
-      throw new Exception("Error: Your public key is not registered on the server.");
     recipients.addProperty(userId,
         Base64.getEncoder().encodeToString(CryptoUtils.wrapKey(myKey, sessionKey)));
 
-    // Build Envelope
     JsonObject envelope = new JsonObject();
     envelope.add("metadata", metadata);
     envelope.add("recipients", recipients);
-    envelope.addProperty("ciphertext", cipherTextB64);
+    envelope.addProperty("ciphertext", Base64.getEncoder().encodeToString(encryptedBytes));
 
-    // Sign
-    String dataToSign = metadata.toString() + recipients.toString() + cipherTextB64;
+    String dataToSign =
+        metadata.toString() + recipients.toString() + envelope.get("ciphertext").getAsString();
     Signature rsa = Signature.getInstance("SHA256withRSA");
     rsa.initSign(loadLocalPrivateKey(userId));
     rsa.update(dataToSign.getBytes());
     envelope.addProperty("signature", Base64.getEncoder().encodeToString(rsa.sign()));
 
     return envelope;
-  }
-
-  private static JsonObject decryptEnvelope(JsonObject envelope, String userId) throws Exception {
-    if (!envelope.has("recipients") || !envelope.has("ciphertext"))
-      throw new Exception("Invalid envelope format");
-
-    JsonObject recipients = envelope.getAsJsonObject("recipients");
-    if (!recipients.has(userId))
-      throw new Exception("Access Denied: You are not a recipient.");
-
-    PrivateKey myPrivKey = loadLocalPrivateKey(userId);
-    byte[] wrappedKey = Base64.getDecoder().decode(recipients.get(userId).getAsString());
-    SecretKey sessionKey = CryptoUtils.unwrapKey(myPrivKey, wrappedKey);
-
-    String cipherTextB64 = envelope.get("ciphertext").getAsString();
-    byte[] decryptedBytes =
-        CryptoUtils.decrypt(sessionKey, Base64.getDecoder().decode(cipherTextB64));
-
-    return new Gson().fromJson(new String(decryptedBytes), JsonObject.class);
-  }
-
-  private static boolean checkEnvelopeInMemory(JsonObject envelope) {
-    try {
-      JsonObject metadata = envelope.getAsJsonObject("metadata");
-      String authorId = metadata.get("author_id").getAsString();
-
-      PublicKey authorKey = getPublicKeyFromServer(authorId);
-      if (authorKey == null)
-        return false;
-
-      String dataToVerify = metadata.toString() + envelope.get("recipients").toString()
-          + envelope.get("ciphertext").getAsString();
-      Signature rsa = Signature.getInstance("SHA256withRSA");
-      rsa.initVerify(authorKey);
-      rsa.update(dataToVerify.getBytes());
-
-      boolean valid =
-          rsa.verify(Base64.getDecoder().decode(envelope.get("signature").getAsString()));
-      if (valid)
-        System.out.println("Integrity Check: VALID (Signed by " + authorId + ")");
-      else
-        System.err.println("Integrity Check: INVALID SIGNATURE");
-
-      return valid;
-    } catch (Exception e) {
-      System.err.println("Integrity Check Logic Error: " + e.getMessage());
-      return false;
-    }
-  }
-
-  // --- MUNICIPALITY & NETWORK UTILS (Same as before) ---
-
-  public static List<String> getPendingReports(String userId) throws Exception {
-    String resp = sendNetworkCommand("GET_PENDING_REPORTS " + userId);
-    if (resp.startsWith("ERROR") || resp.isEmpty())
-      return Collections.emptyList();
-    return Arrays.asList(resp.split(","));
-  }
-
-  public static JsonObject fetchAndDecryptReport(String reportId, String userId) throws Exception {
-    String jsonResp = sendNetworkCommand("GET_REPORT " + reportId);
-    if (jsonResp.startsWith("ERROR"))
-      throw new Exception(jsonResp);
-
-    Gson gson = new Gson();
-    JsonObject envelope = gson.fromJson(jsonResp, JsonObject.class);
-
-    if (!checkEnvelopeInMemory(envelope))
-      throw new Exception("Integrity Check Failed for " + reportId);
-
-    return decryptEnvelope(envelope, userId);
-  }
-
-  public static void submitDecision(String reportId, String decision, String userId)
-      throws IOException {
-    String cmd = String.format("UPDATE_STATUS %s %s %s", reportId, decision, userId);
-    String resp = sendNetworkCommand(cmd);
-    if (!resp.startsWith("OK"))
-      throw new RuntimeException("Server Error: " + resp);
-  }
-
-  // --- AUTH & KEY UTILS ---
-
-  public static String registerUser(String username, String password, String role)
-      throws Exception {
-    // 1. Generate KeyPair
-    KeyPair pair = CryptoUtils.generateRSAKeyPair();
-    String pubKeyB64 = Base64.getEncoder().encodeToString(pair.getPublic().getEncoded());
-
-    // 2. Send Info to Server
-    // Protocol: REGISTER <username> <password> <role> <pubkey>
-    String cmd = String.format("REGISTER %s %s %s %s", username, password, role, pubKeyB64);
-
-    String response = sendNetworkCommand(cmd);
-
-    // 3. Process Response
-    if (response.startsWith("ERROR")) {
-      throw new Exception("Registration Failed: " + response);
-    }
-
-    // Server returns the new MongoDB ObjectId
-    String newUserId = response.trim();
-
-    // 4. Save Private Key Locally using the Server-Provided ID
-    saveLocalPrivateKey(newUserId, pair.getPrivate());
-
-    return newUserId;
-  }
-
-  public static String loginUser(String username, String password) throws Exception {
-    String resp = sendNetworkCommand("LOGIN " + username + " " + password);
-    if (resp.startsWith("ERROR"))
-      return null;
-    return resp.trim();
-  }
-
-  public static String getUserRole(String userId) throws IOException {
-    String resp = sendNetworkCommand("GET_ROLE " + userId);
-    if (resp.startsWith("ERROR"))
-      return "citizen";
-    return resp.trim();
-  }
-
-  private static PublicKey getPublicKeyFromServer(String userId) throws Exception {
-    String resp = sendNetworkCommand("GET_PUBKEY " + userId);
-    if (resp.startsWith("ERROR"))
-      return null;
-    byte[] keyBytes = Base64.getDecoder().decode(resp);
-    return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(keyBytes));
-  }
-
-  private static long getNextNonce(String userId) throws IOException {
-    String resp = sendNetworkCommand("GET_NONCE " + userId);
-    try {
-      return Long.parseLong(resp.trim());
-    } catch (Exception e) {
-      return System.currentTimeMillis();
-    }
   }
 
   private static PrivateKey loadLocalPrivateKey(String id) throws Exception {
@@ -357,14 +280,95 @@ public class SecureLibrary {
     }
   }
 
-  private static String sendNetworkCommand(String cmd) throws IOException {
-    SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
-    try (SSLSocket socket = (SSLSocket) sf.createSocket(SERVER_HOST, SERVER_PORT);
-        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-      socket.startHandshake();
-      out.println(cmd);
-      return in.readLine();
+  private static JsonObject decryptEnvelope(JsonObject envelope, String userId) throws Exception {
+    if (!envelope.has("recipients") || !envelope.has("ciphertext"))
+      throw new Exception("Invalid envelope format");
+    JsonObject recipients = envelope.getAsJsonObject("recipients");
+    if (!recipients.has(userId))
+      throw new Exception("Access Denied");
+    PrivateKey myPrivKey = loadLocalPrivateKey(userId);
+    byte[] wrappedKey = Base64.getDecoder().decode(recipients.get(userId).getAsString());
+    SecretKey sessionKey = CryptoUtils.unwrapKey(myPrivKey, wrappedKey);
+    String cipherTextB64 = envelope.get("ciphertext").getAsString();
+    byte[] decryptedBytes =
+        CryptoUtils.decrypt(sessionKey, Base64.getDecoder().decode(cipherTextB64));
+    return new Gson().fromJson(new String(decryptedBytes), JsonObject.class);
+  }
+
+  private static boolean checkEnvelopeInMemory(JsonObject envelope) {
+    try {
+      JsonObject metadata = envelope.getAsJsonObject("metadata");
+      String authorId = metadata.get("author_id").getAsString();
+      PublicKey authorKey = getPublicKeyFromServer(authorId);
+      if (authorKey == null)
+        return false;
+      String dataToVerify = metadata.toString() + envelope.get("recipients").toString()
+          + envelope.get("ciphertext").getAsString();
+      Signature rsa = Signature.getInstance("SHA256withRSA");
+      rsa.initVerify(authorKey);
+      rsa.update(dataToVerify.getBytes());
+      boolean valid =
+          rsa.verify(Base64.getDecoder().decode(envelope.get("signature").getAsString()));
+
+      if (valid)
+        System.out.println("Integrity Check: VALID (Signed by " + authorId + ")");
+      else
+        System.err.println("Integrity Check: INVALID");
+      return valid;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  // --- MANUAL COMMANDS (Updated to use Network for Crypto Data) ---
+
+  public static void protect(String inputFile, String outputFile, String userId) throws Exception {
+    // 1. Read Input File
+    Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+    JsonObject reportData;
+    try (FileReader reader = new FileReader(inputFile)) {
+      reportData = gson.fromJson(reader, JsonObject.class);
+    }
+
+    // 2. Build Envelope (Uses getNextNonce from Network)
+    long nonce = getNextNonce(userId);
+    JsonObject envelope = createProtectedEnvelope(reportData, userId, nonce);
+
+    // 3. Save to Output File
+    try (FileWriter w = new FileWriter(outputFile)) {
+      gson.toJson(envelope, w);
+    }
+    System.out.println("File protected and saved to: " + outputFile);
+  }
+
+  public static void unprotect(String inputFile, String outputFile, String userId)
+      throws Exception {
+    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    JsonObject envelope;
+    try (FileReader reader = new FileReader(inputFile)) {
+      envelope = gson.fromJson(reader, JsonObject.class);
+    }
+
+    // Uses Network to fetch public key for check, then local private key to decrypt
+    if (!checkEnvelopeInMemory(envelope))
+      throw new Exception("Integrity Check Failed");
+    JsonObject payload = decryptEnvelope(envelope, userId);
+
+    try (FileWriter w = new FileWriter(outputFile)) {
+      gson.toJson(payload, w);
+    }
+    System.out.println("File unprotected and saved to: " + outputFile);
+  }
+
+  public static boolean check(String inputFile) {
+    try (FileReader reader = new FileReader(inputFile)) {
+      Gson gson = new Gson();
+      JsonObject envelope = gson.fromJson(reader, JsonObject.class);
+      // Uses Network to fetch author's public key
+      return checkEnvelopeInMemory(envelope);
+    } catch (Exception e) {
+      System.err.println("Check failed: " + e.getMessage());
+      return false;
     }
   }
 }

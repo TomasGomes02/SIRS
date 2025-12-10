@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
-
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import com.google.gson.Gson;
@@ -42,35 +41,31 @@ public class DatabaseService {
     }
   }
 
-  // --- User Management (Updated) ---
+  // --- User Management ---
 
-  /**
-   * Registers a user and returns the auto-generated MongoDB ID.
-   */
   public String registerUser(String username, String password, String role, String pubKey) {
-    // Check for duplicates
     if (usersCollection.find(Filters.eq("name", username)).first() != null) {
       throw new RuntimeException("Username already taken");
     }
 
-    Document doc = new Document() // let Mongo generate _id
-        .append("name", username).append("password", password).append("role", role)
-        .append("publicKey", pubKey).append("nonce", 0L);
+    // Generate initial token
+    String initialToken = UUID.randomUUID().toString();
+    int initialTokens = 5; // Default tokens per user
 
-    // dar append também do n_tokens e gerar o token inicial
+    Document doc = new Document().append("name", username).append("password", password)
+        .append("role", role).append("publicKey", pubKey).append("nonce", 0L)
+        .append("n_tokens", initialTokens).append("token", initialToken);
 
     usersCollection.insertOne(doc);
 
-    // Return the string representation of the auto-generated ObjectId
     String newId = doc.getObjectId("_id").toString();
-    System.out.println("DB: Registered User " + username + " with ID: " + newId);
+    System.out.println("DB: Registered " + username + " (ID: " + newId + ")");
     return newId;
   }
 
   public String loginUser(String username, String password) {
     Document user = usersCollection.find(Filters.eq("name", username)).first();
     if (user != null && user.getString("password").equals(password)) {
-      // Return the MongoDB ObjectId as string
       return user.getObjectId("_id").toString();
     }
     return null;
@@ -81,8 +76,8 @@ public class DatabaseService {
       Document user =
           usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
       return (user != null) ? user.getString("role") : "unknown";
-    } catch (IllegalArgumentException e) {
-      return "unknown"; // Handle invalid ObjectId strings
+    } catch (Exception e) {
+      return "unknown";
     }
   }
 
@@ -99,15 +94,52 @@ public class DatabaseService {
     }
   }
 
-  // --- Nonce Handling (Updated for ObjectId) ---
+  // --- Token Management ---
+
+  public String getUserCurrentToken(String userId) {
+    try {
+      Document user =
+          usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
+      return (user != null) ? user.getString("token") : null;
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  /**
+   * Consumes 1 token count and generates a NEW token string. Returns the NEW token.
+   */
+  public String consumeUserToken(String userId) {
+    try {
+      Document user =
+          usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
+      if (user == null)
+        throw new RuntimeException("User not found");
+
+      Integer n_tokens = user.getInteger("n_tokens");
+      if (n_tokens == null || n_tokens <= 0) {
+        throw new RuntimeException("No tokens remaining");
+      }
+
+      String newToken = UUID.randomUUID().toString();
+
+      usersCollection.updateOne(Filters.eq("_id", new org.bson.types.ObjectId(userId)),
+          Updates.combine(Updates.inc("n_tokens", -1), Updates.set("token", newToken)));
+
+      System.out.println("DB: Consumed token for " + userId + ". Remaining: " + (n_tokens - 1));
+      return newToken;
+    } catch (Exception e) {
+      throw new RuntimeException(e.getMessage());
+    }
+  }
+
+  // --- Nonce & Report Management ---
 
   public long getNextNonce(String userId) {
     try {
       Document user =
           usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
-      if (user == null)
-        return 0;
-      return user.getLong("nonce") + 1;
+      return (user != null) ? user.getInteger("nonce") + 1 : 0;
     } catch (Exception e) {
       return 0;
     }
@@ -119,9 +151,7 @@ public class DatabaseService {
       Document user = usersCollection.find(filter).first();
       if (user == null)
         return false;
-
-      long current = user.getLong("nonce");
-      if (receivedNonce > current) {
+      if (receivedNonce > user.getLong("nonce")) {
         usersCollection.updateOne(filter, Updates.set("nonce", receivedNonce));
         return true;
       }
@@ -131,24 +161,19 @@ public class DatabaseService {
     return false;
   }
 
-  // --- Report Management (Unchanged - Keeps Custom ID) ---
-
   public void storeReport(JsonObject envelope, String reportId) {
     Document doc = Document.parse(gson.toJson(envelope));
-    doc.append("_id", reportId); // Keeping Client-Generated ID for Reports
-
+    doc.append("_id", reportId);
     Document metadata = (Document) doc.get("metadata");
     metadata.put("status", "WAITING");
     doc.put("metadata", metadata);
-
     reportsCollection.insertOne(doc);
-    System.out.println("DB: Stored Report " + reportId);
   }
 
   public List<String> getPendingReports() {
     List<String> ids = new ArrayList<>();
-    Bson filter = Filters.eq("metadata.status", "WAITING");
-    reportsCollection.find(filter).forEach(doc -> ids.add(doc.getString("_id")));
+    reportsCollection.find(Filters.eq("metadata.status", "WAITING"))
+        .forEach(doc -> ids.add(doc.getString("_id")));
     return ids;
   }
 
@@ -161,58 +186,7 @@ public class DatabaseService {
   }
 
   public void updateReportStatus(String reportId, String status) {
-    Bson filter = Filters.eq("_id", reportId);
-    Bson update = Updates.set("metadata.status", status);
-    reportsCollection.updateOne(filter, update);
-  }
-
-  public Integer getUserTokens(String userId) {
-    try {
-      Document user =
-          usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
-      if (user == null)
-        return 0;
-
-     return user.getInteger("n_tokens");
-    } catch (Exception e) {
-      return 0;
-    }
-  }
-
-  public String getUserCurrentToken(String userId) {
-    try {
-      Document user =
-          usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
-      if (user == null)
-        return null;
-
-     return user.getString("token");
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  public void consumeUserToken(String userId) {
-    try {
-      Document user =
-          usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
-      if (user == null)
-        return;
-
-      Integer n_tokens = user.getInteger("n_tokens");
-      if (n_tokens > 0) {
-        String newToken = UUID.randomUUID().toString(); // Generate new token
-    
-        usersCollection.updateOne(
-            Filters.eq("_id", userId),
-            Updates.combine(
-              Updates.inc("n_tokens", -1),
-              Updates.set("token", newToken))
-        );
-        System.out.println("DB: Consumed 1 token from " + userId);
-      }
-    } catch (Exception e) {
-      return;
-    }
+    reportsCollection.updateOne(Filters.eq("_id", reportId),
+        Updates.set("metadata.status", status));
   }
 }

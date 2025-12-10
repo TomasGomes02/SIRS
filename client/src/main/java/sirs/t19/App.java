@@ -20,6 +20,7 @@ public class App {
   private static String currentUserId = "";
   private static String currentUsername = "";
   private static String currentRole = "";
+  private static String currentToken = "";
 
   public static void main(String[] args) {
     try {
@@ -52,7 +53,7 @@ public class App {
           LineReaderBuilder.builder().terminal(terminal).completer(dynamicCompleter).build();
 
       System.out.println("--------------------------------------------------");
-      System.out.println("      CivicEcho Client Terminal (v14.0)           ");
+      System.out.println("      CivicEcho Client Terminal (v15.0)           ");
       System.out.println("--------------------------------------------------");
 
       while (true) {
@@ -86,12 +87,13 @@ public class App {
                 if (argsList.length < 2)
                   System.err.println("Usage: login <user> <pass>");
                 else {
-                  String uuid = SecureLibrary.loginUser(argsList[0], argsList[1]);
-                  if (uuid != null) {
-                    currentUserId = uuid;
+                  String[] creds = SecureLibrary.loginUser(argsList[0], argsList[1]);
+                  if (creds != null) {
+                    currentUserId = creds[0];
+                    currentToken = creds[1];
                     currentUsername = argsList[0];
-                    currentRole = SecureLibrary.getUserRole(uuid);
-                    System.out.println("Login successful.");
+                    currentRole = SecureLibrary.getUserRole(currentUserId);
+                    System.out.println("Login Successful.");
                   } else
                     System.err.println("Invalid credentials.");
                 }
@@ -100,12 +102,14 @@ public class App {
                 if (argsList.length < 3)
                   System.err.println("Usage: register <user> <pass> <role>");
                 else {
-                  String uuid = SecureLibrary.registerUser(argsList[0], argsList[1], argsList[2]);
-                  if (uuid != null) {
-                    currentUserId = uuid;
+                  String[] creds =
+                      SecureLibrary.registerUser(argsList[0], argsList[1], argsList[2]);
+                  if (creds != null) {
+                    currentUserId = creds[0];
+                    currentToken = creds[1];
                     currentUsername = argsList[0];
                     currentRole = argsList[2];
-                    System.out.println("Registered. UUID: " + uuid);
+                    System.out.println("Registered. UUID: " + currentUserId);
                   }
                 }
                 break;
@@ -204,7 +208,7 @@ public class App {
       r.saveToLocalFile("client/reports/" + r.getReportId() + ".json");
 
       // 4. Protect & Submit
-      SecureLibrary.protectAndSubmit(reportJson, currentUserId);
+      SecureLibrary.protectAndSubmit(reportJson, currentUserId, currentToken);
 
     } catch (Exception e) {
       System.err.println("Report Failed: " + e.getMessage());

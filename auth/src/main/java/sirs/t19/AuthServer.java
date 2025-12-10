@@ -1,21 +1,15 @@
 package sirs.t19;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Updates;
-import org.bson.Document;
-
-import java.security.KeyFactory;
-import java.security.PublicKey;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
-import java.util.UUID;
-import app.src.main.java.sirs.t19.DatabaseService;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSocket;
 
 public class AuthServer {
   private static final int PORT = 8443;
@@ -23,25 +17,20 @@ public class AuthServer {
 
   public static void main(String[] args) {
     try {
-      System.out.println("AuthServer: Starting...");
+      System.out.println("AuthServer (192.168.20.10): Starting...");
 
-      // AQUI TROCAR OS NOMES DOS FILES
-
-      // Setup Identity (Server's Key)
-      File storeFile = extractResource("server.p12");
+      // Load Keys (Standard naming)
+      File storeFile = extractResource("auth-server.p12");
       System.setProperty("javax.net.ssl.keyStore", storeFile.getAbsolutePath());
       System.setProperty("javax.net.ssl.keyStorePassword", "serverpass");
       System.setProperty("javax.net.ssl.keyStoreType", "PKCS12");
 
-      // Setup Trust (DB CA)
-      File trustFile = extractResource("server_truststore.jks");
+      File trustFile = extractResource("auth_server_truststore.jks");
       System.setProperty("javax.net.ssl.trustStore", trustFile.getAbsolutePath());
       System.setProperty("javax.net.ssl.trustStorePassword", "serverpass");
 
-      // Connect DB
       db = new DatabaseService();
 
-      // Listen
       SSLServerSocketFactory ssf = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
       SSLServerSocket serverSocket = (SSLServerSocket) ssf.createServerSocket(PORT);
       System.out.println("AuthServer: Listening on TLS " + PORT);
@@ -61,10 +50,8 @@ public class AuthServer {
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
       String line = in.readLine();
-      if (line == null)
-        return;
-
-      System.out.println("CMD: " + line); // Debug logging
+      if (line == null) return;
+      System.out.println("CMD: " + line);
 
       String[] parts = line.split(" ");
       String cmd = parts[0];
@@ -73,57 +60,35 @@ public class AuthServer {
         switch (cmd) {
           case "REGISTER":
             // REGISTER <user> <pass> <role> <pubkey>
+            // Returns: <UUID> <TOKEN>
             if (parts.length == 5) {
-              try {
-                String newId = db.registerUser(parts[1], parts[2], parts[3], parts[4]);
-                String newToken = db.issueToken(newId);
-                // Send the new ID and the token back to the client
-                out.println(newId);
-              } catch (Exception e) {
-                out.println("ERROR " + e.getMessage());
-              }
-            } else {
-              out.println("ERROR Format");
-            }
+              String newId = db.registerUser(parts[1], parts[2], parts[3], parts[4]);
+              String token = db.getUserCurrentToken(newId); 
+              out.println(newId + " " + token);
+            } else out.println("ERROR Format");
             break;
 
           case "LOGIN":
             // LOGIN <user> <pass>
+            // Returns: <UUID> <TOKEN>
             if (parts.length == 3) {
               String uuid = db.loginUser(parts[1], parts[2]);
-              String token = db.getUserCurrentToken(uuid);
-              out.println(uuid != null ? uuid : "ERROR Creds");
-            } else
-              out.println("ERROR Format");
-            break;
-
-          case "CONSUME": // consumes user token
-            // CONSUME <user>
-            if (parts.length == 2) {
-              try {
-                db.consumeUserToken(parts[1]);
-                out.println("CONSUMED TOKEN");
-              } catch (Exception e) {
-                out.println("ERROR " + e.getMessage());
+              if (uuid != null) {
+                String token = db.getUserCurrentToken(uuid);
+                out.println(uuid + " " + token);
+              } else {
+                out.println("ERROR Creds");
               }
-            } else {
-              out.println("ERROR Format");
-            }
+            } else out.println("ERROR Format");
             break;
 
           case "REQUEST":
-            // REQUEST <user>
+            // REQUEST <user_id>
+            // Consumes the *current* token and returns the *next* token
             if (parts.length == 2) {
-              try {
-                String token = db.getUserCurrentToken(parts[1]);
-                // send the token to the user
-                out.println(token);
-              } catch (Exception e) {
-                out.println("ERROR " + e.getMessage());
-              }
-            } else {
-              out.println("ERROR Format");
-            }
+              String newToken = db.consumeUserToken(parts[1]);
+              out.println(newToken);
+            } else out.println("ERROR Format");
             break;
 
           default:
@@ -137,4 +102,19 @@ public class AuthServer {
     }
   }
 
+  // Helper to load resources
+  private static File extractResource(String name) {
+      try {
+        File temp = File.createTempFile(name, ".tmp");
+        temp.deleteOnExit();
+        try (InputStream is = AuthServer.class.getClassLoader().getResourceAsStream(name);
+            FileOutputStream os = new FileOutputStream(temp)) {
+          if (is == null) throw new RuntimeException("Resource " + name + " not found");
+          byte[] buffer = new byte[1024];
+          int read;
+          while ((read = is.read(buffer)) != -1) os.write(buffer, 0, read);
+        }
+        return temp;
+      } catch (IOException e) { throw new RuntimeException(e); }
+  }
 }

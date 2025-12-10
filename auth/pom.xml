@@ -9,12 +9,12 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>app</artifactId>
+    <artifactId>auth-server</artifactId>
     <packaging>jar</packaging>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <mainclass>sirs.t19.App</mainclass>
+        <mainclass>sirs.t19.AuthServer</mainclass>
     </properties>
 
     <dependencies>
@@ -23,17 +23,9 @@
             <artifactId>db</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>5.9.2</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
-        <finalName>app-server-${project.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -44,7 +36,7 @@
                     <target>1.8</target>
                 </configuration>
             </plugin>
-            
+
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>appassembler-maven-plugin</artifactId>
@@ -59,7 +51,7 @@
                     <programs>
                         <program>
                             <mainClass>${mainclass}</mainClass>
-                            <id>server</id>
+                            <id>auth-server</id>
                         </program>
                     </programs>
                 </configuration>

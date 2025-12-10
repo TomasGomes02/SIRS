@@ -4,44 +4,40 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 # --- Configurations ---
-SHARED_NAME='T19-CivicEcho/client/jar'   # VBox shared-folder label
-MOUNT_POINT='/media/sf_civicecho'
-APP_DIR='/opt/civicecho/client'
-CLIENT_JAR='client-app-1.0-SNAPSHOT.jar'
-CLIENT_NET='192.168.20.0/24'
+SHARED_NAME="jar"   # VBox shared-folder label
+MOUNT_POINT="/media/sf_civicechor"
+APP_DIR="/opt/civicecho/client"
+CLIENT_JAR="client-app-1.0-SNAPSHOT.jar"
+CLIENT_NET="192.168.20.0/24"
 IF=$(ip -br link | awk '/^e[ns][^:]+[[:space:]]+UP/ {print $1; exit}')
 
 
 echo '=== 1. install JDK 25 ==='
 apt-get update && apt-get upgrade -y
-wget https://download.java.net/java/early_access/jdk25/19/GPL/openjdk-25-ea+19_linux-x64_bin.tar.gz
-mkdir -p /opt/jdk
-tar -xf openjdk-25-ea+19_linux-x64_bin.tar.gz -C /opt/jdk --strip-components=1
-update-alternatives --install /usr/bin/java java /opt/jdk/bin/java 2500
-rm openjdk-25-ea+19_linux-x64_bin.tar.gz
-apt-get install -y virtualbox-guest-utils
+
+apt-get install -y openjdk-25-jdk virtualbox-guest-utils
 
 
-echo '=== 2. user & shared folder ==='
-useradd -m -s /bin/bash civicecho 2>/dev/null || true
+echo "=== 2. user & shared folder ==="
+useradd -m -s /bin/bash $USER 2>/dev/null || true
 mkdir -p "$APP_DIR" "$MOUNT_POINT"
-usermod -aG vboxsf civicecho
+usermod -aG vboxsf $USER
 mount -t vboxsf "$SHARED_NAME" "$MOUNT_POINT" || {
-  echo 'ERROR: mount failed – install Guest Additions'; exit 1
+  echo "ERROR: mount failed – install Guest Additions"; exit 1
 }
 
 cp "$MOUNT_POINT/$CLIENT_JAR" "$APP_DIR/"
-chown -R civicecho:civicecho "$APP_DIR"
+chown -R $USER:$USER "$APP_DIR"
 
 
-echo '=== 3. firewall ==='
+echo "=== 3. firewall ==="
 ufw --force reset
 ufw default deny incoming
 ufw default allow outgoing
 ufw --force enable
 
 
-echo '=== 4. enable DHCP on SW2 ==='
+echo "=== 4. enable DHCP on SW2 ==="
 cat >/usr/local/bin/finish-client.sh <<EOF
 #!/bin/bash
 cat >/etc/netplan/02-sw2.yaml <<EOF2

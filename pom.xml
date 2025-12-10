@@ -12,6 +12,8 @@
     <modules>
         <module>client</module>
         <module>app</module>
+        <module>auth</module>
+        <module>db</module>
     </modules>
 
     <properties>
