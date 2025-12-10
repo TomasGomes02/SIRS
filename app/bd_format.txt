@@ -5,6 +5,8 @@ Users: {
         "pubkey": "value",
         "role": "citizen" | "municipality",
         "nonce": "counter"
+        "n_tokens": "counter"
+        "token": "value"
     }
 }
 

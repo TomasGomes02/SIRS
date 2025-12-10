@@ -6,6 +6,8 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.UUID;
+
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import com.google.gson.Gson;
@@ -54,6 +56,8 @@ public class DatabaseService {
     Document doc = new Document() // let Mongo generate _id
         .append("name", username).append("password", password).append("role", role)
         .append("publicKey", pubKey).append("nonce", 0L);
+
+    // dar append também do n_tokens e gerar o token inicial
 
     usersCollection.insertOne(doc);
 
@@ -160,5 +164,55 @@ public class DatabaseService {
     Bson filter = Filters.eq("_id", reportId);
     Bson update = Updates.set("metadata.status", status);
     reportsCollection.updateOne(filter, update);
+  }
+
+  public Integer getUserTokens(String userId) {
+    try {
+      Document user =
+          usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
+      if (user == null)
+        return 0;
+
+     return user.getInteger("n_tokens");
+    } catch (Exception e) {
+      return 0;
+    }
+  }
+
+  public String getUserCurrentToken(String userId) {
+    try {
+      Document user =
+          usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
+      if (user == null)
+        return null;
+
+     return user.getString("token");
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  public void consumeUserToken(String userId) {
+    try {
+      Document user =
+          usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
+      if (user == null)
+        return;
+
+      Integer n_tokens = user.getInteger("n_tokens");
+      if (n_tokens > 0) {
+        String newToken = UUID.randomUUID().toString(); // Generate new token
+    
+        usersCollection.updateOne(
+            Filters.eq("_id", userId),
+            Updates.combine(
+              Updates.inc("n_tokens", -1),
+              Updates.set("token", newToken))
+        );
+        System.out.println("DB: Consumed 1 token from " + userId);
+      }
+    } catch (Exception e) {
+      return;
+    }
   }
 }
