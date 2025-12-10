@@ -16,12 +16,12 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.UUID;
 
-public class ReportLimiter {
+public class AuthServer {
 
   private final MongoCollection<Document> tokensCollection;
   private final Gson gson = new Gson();
 
-  public ReportLimiter() {
+  public AuthServer() {
     // Read DB HOST from ENV, default to localhost
     String dbHost = System.getenv("MONGO_HOST") != null ? System.getenv("MONGO_HOST") : "localhost";
     // Ensure the Mongo server is configured for TLS
@@ -39,28 +39,4 @@ public class ReportLimiter {
     }
   }
 
-  public Integer getUserTokens(String userId) {
-    Document tokenDoc = tokensCollection.find(Filters.eq("_id", userId)).first();
-    if (tokenDoc == null)
-      return null;
-    Integer n_tokens = tokenDoc.getInteger("n_tokens");
-    return n_tokens;
-  }
-
-  public void issueUserTokens(String userId, Integer n_tokens) {
-    tokensCollection.updateOne(
-        Filters.eq("_id", userId),
-        Updates.inc("n_tokens", n_tokens),
-        new com.mongodb.client.model.UpdateOptions().upsert(true)
-    );
-    System.out.println("DB: Issued " + n_tokens + " tokens for " + userId);
-  }
-
-  public void consumeUserToken(String userId) {
-    tokensCollection.updateOne(
-        Filters.eq("_id", userId),
-        Updates.inc("n_tokens", -1)
-    );
-    System.out.println("DB: Consumed 1 token from " + userId);
-  }
 }
