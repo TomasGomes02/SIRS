@@ -138,11 +138,15 @@ ssh <vm-user>@127.0.0.1 -p 2223
 5. Inside SSH session paste:
 
 ```sh
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/baf5a3fcdf8f5d57947cbfa6c908f77ff0c89e48/init-app-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/4ebc4d341bbc7bab8ac0c74a61f038cdd18c9a39/init-app-vm.sh | sudo bash
 ```
 
 ```sh
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/d3d8947b8be697952eea838407cd9cd0b2a5b54b/init-app-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/33f5e21da8e1ba6d629c350dfa0d754b8e367f24/init-auth-vm.sh | sudo bash
+```
+
+```sh
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/fc3cdeea78c4792a5bd072b520a104143b82b968/init-client-vm.sh | sudo bash
 ```
 
 6. When script finishes, exit ssh and power-off the VM
