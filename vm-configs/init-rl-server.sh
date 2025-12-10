@@ -14,20 +14,6 @@ apt-get update
 apt-get install -y mongodb-org
 systemctl enable --now mongod
 
-echo "=== Phase 1b: generate DB certs (while NAT is up) ==="
-
-# Generate DB CA & Server certificates ONLY
-mkdir -p /etc/ssl/sirs
-cd /etc/ssl/sirs
-openssl genrsa -out server.key 2048
-openssl req -new -key server.key -out server.csr -subj "/CN=sirs-server/O=T19-CivicEcho"
-openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
-openssl x509 -in server.crt -out server.pem
-openssl pkcs12 -export -in server.crt -inkey server.key -out server.p12 -passout pass:changeme
-
-# Keep servertruststore.jks for App VM to trust DB (if needed)
-keytool -import -trustcacerts -file server.pem -keypass changeme -storepass changeme -keystore servertruststore.jks -noprompt
-
 echo "=== Phase 2: schedule network switch (runs after reboot into host-only) ==="
 IF=$(ip -br link | awk '/^e[ns][^:]+[[:space:]]+UP/ {print $1; exit}')
 export IF
@@ -40,22 +26,22 @@ network:
   ethernets:
     $IF:
       dhcp4: no
-      addresses: [192.168.10.10/24]
+      addresses: [192.168.20.10/24]
       nameservers:
         addresses: [1.1.1.1, 8.8.8.8]
 EOF2
 chmod 600 /etc/netplan/01-sw1.yaml
 netplan apply
-sed -i 's/bindIp.*/bindIp: 192.168.10.10/' /etc/mongod.conf
+sed -i 's/bindIp.*/bindIp: 192.168.20.10/' /etc/mongod.conf
 systemctl restart mongod
 ufw --force reset
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow from 192.168.10.20 to any port 27017
 ufw --force enable
-mongosh mongodb://192.168.10.10:27017/civicecho --eval 'db.adminCommand("ping");
-db.createCollection("reports")'
-echo "MongoDB ready on isolated 192.168.10.10:27017"
+mongosh mongodb://192.168.20.0:27017/civicecho-tokens --eval 'db.adminCommand("ping");
+db.createCollection("tokens")'
+echo "MongoDB ready on isolated 192.168.20.10:27017"
 EOF
 chmod +x /usr/local/bin/finish-db.sh
 
