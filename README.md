@@ -138,7 +138,7 @@ ssh <vm-user>@127.0.0.1 -p 2223
 5. Inside SSH session paste:
 
 ```sh
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/d3d8947b8be697952eea838407cd9cd0b2a5b54b/init-app-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/baf5a3fcdf8f5d57947cbfa6c908f77ff0c89e48/init-app-vm.sh | sudo bash
 ```
 
 ```sh
