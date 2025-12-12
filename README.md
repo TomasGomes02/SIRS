@@ -142,7 +142,7 @@ curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0b
 ```
 
 ```sh
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/33f5e21da8e1ba6d629c350dfa0d754b8e367f24/init-auth-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/e63242572740d45e577fa1fef292fab119c2735d/init-auth-vm.sh | sudo bash
 ```
 
 ```sh
