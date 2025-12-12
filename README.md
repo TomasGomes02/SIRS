@@ -31,7 +31,7 @@ To see the project in action, it is necessary to setup a virtual environment, wi
 
 The following diagram shows the networks and machines:
 
-![Figure 1 - Network diagram](img/diagrama_sirs_v3.png)
+![Figure 1 - Network diagram](img/diagrama_sirs_v4.png.png)
 
 ### Prerequisites
 
@@ -183,10 +183,7 @@ ping -c 3 192.168.20.0
 
 To verify application services:
 
-```sh
-# Test Nginx/SSL/Tomcat stack (ignore the cert warning for now)
-curl -k https://192.168.10.20
-
+```
 # After certificate signing, test proper SSL:
 curl https://192.168.10.20
 ```
