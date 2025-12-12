@@ -78,7 +78,7 @@ ssh <vm-user>@127.0.0.1 -p 2222
 5. Inside SSH session paste:
 
 ```sh
-curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/abc124e38bb38263a6ebf26c11b1cdd15a64fc6d/init-database-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/173496700cf53908d1b63897baf6eef867e122eb/init-database-vm.sh | sudo bash
 ```
 
 6. When script finishes, exit ssh and power-off VM
