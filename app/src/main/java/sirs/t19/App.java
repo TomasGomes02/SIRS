@@ -198,7 +198,8 @@ public class App {
 
   private static void processReport(String json) throws Exception {
     Gson gson = new Gson();
-    JsonObject envelope = gson.fromJson(json, JsonObject.class);
+    String[] line = json.split(" ");
+    JsonObject envelope = gson.fromJson(line[0], JsonObject.class);
 
     // envelope format might be: { "report_id": { "metadata":..., "ciphertext":... } }
     // OR just { "metadata":..., "ciphertext":... } depending on how client sends it.

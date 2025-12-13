@@ -25,8 +25,15 @@ public class DatabaseService {
   private final Gson gson = new Gson();
 
   public DatabaseService() {
-    String dbHost = System.getenv("MONGO_HOST") != null ? System.getenv("MONGO_HOST") : "192.168.10.10";
-    String uri = "mongodb://" + dbHost + ":27017/?tls=true";
+    String dbHost = System.getenv("MONGO_HOST") != null ? System.getenv("MONGO_HOST") : "localhost";
+    String uri;
+    if (dbHost.equals("localhost")) {
+        // Local testing: Use TLS but ignore the hostname mismatch (since cert is for 192.x.x.x)
+        uri = "mongodb://localhost:27017/?tls=true&tlsAllowInvalidHostnames=true"; 
+    } else {
+        // Production (VMs): Strict TLS checking
+        uri = "mongodb://" + dbHost + ":27017/?tls=true";
+    }
 
     try {
       MongoClient mongoClient = MongoClients.create(uri);
@@ -127,7 +134,7 @@ public class DatabaseService {
           Updates.combine(Updates.inc("n_tokens", -1), Updates.set("token", newToken)));
 
       System.out.println("DB: Consumed token for " + userId + ". Remaining: " + (n_tokens - 1));
-      return newToken;
+      return newToken + " " + (n_tokens - 1);
     } catch (Exception e) {
       throw new RuntimeException(e.getMessage());
     }
@@ -139,9 +146,9 @@ public class DatabaseService {
     try {
       Document user =
           usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
-      return (user != null) ? user.getInteger("nonce") + 1 : 0;
+      return (user != null) ? user.getLong("nonce") + 1 : 0;
     } catch (Exception e) {
-      return 0;
+      return -1;
     }
   }
 

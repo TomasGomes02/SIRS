@@ -37,13 +37,13 @@ public class SecureLibrary {
 
   // -- IPs Config --
   private static final String APP_HOST =
-      System.getenv("APP_HOST") != null ? System.getenv("APP_HOST") : "192.168.10.10";
+      System.getenv("APP_HOST") != null ? System.getenv("APP_HOST") : "localhost";
 
   private static final String AUTH_HOST =
-      System.getenv("AUTH_HOST") != null ? System.getenv("AUTH_HOST") : "192.168.20.10";
+      System.getenv("AUTH_HOST") != null ? System.getenv("AUTH_HOST") : "localhost";
 
-  private static final int PORT = 8443;
-
+  private static final int APP_PORT = 8443;
+  private static final int AUTH_PORT = 8444;
   static {
     try {
       InputStream trustInput =
@@ -202,7 +202,7 @@ public class SecureLibrary {
     try {
       return Long.parseLong(resp.trim());
     } catch (Exception e) {
-      return 0;
+      return -1;
     }
   }
 
@@ -217,16 +217,16 @@ public class SecureLibrary {
   // --- NETWORK ROUTING ---
 
   private static String sendAuthCommand(String cmd) throws IOException {
-    return sendNetworkCommand(AUTH_HOST, cmd);
+    return sendNetworkCommand(AUTH_HOST, AUTH_PORT, cmd);
   }
 
   private static String sendAppCommand(String cmd) throws IOException {
-    return sendNetworkCommand(APP_HOST, cmd);
+    return sendNetworkCommand(APP_HOST, APP_PORT, cmd);
   }
 
-  private static String sendNetworkCommand(String host, String cmd) throws IOException {
+  private static String sendNetworkCommand(String host, int port, String cmd) throws IOException {
     SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
-    try (SSLSocket socket = (SSLSocket) sf.createSocket(host, PORT);
+    try (SSLSocket socket = (SSLSocket) sf.createSocket(host, port);
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
       socket.startHandshake();

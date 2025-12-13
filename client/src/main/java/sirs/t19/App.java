@@ -205,7 +205,7 @@ public class App {
       JsonObject reportJson = new Gson().fromJson(r.toJson(), JsonObject.class);
 
       // 3. Option to save local plaintext (for debugging/grading manual protect)
-      r.saveToLocalFile("client/reports/" + r.getReportId() + ".json");
+      r.saveToLocalFile("reports/" + r.getReportId() + ".json");
 
       // 4. Protect & Submit
       SecureLibrary.protectAndSubmit(reportJson, currentUserId, currentToken);

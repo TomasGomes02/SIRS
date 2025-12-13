@@ -12,7 +12,7 @@ import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 
 public class AuthServer {
-  private static final int PORT = 8443;
+  private static final int PORT = 8444;
   private static DatabaseService db;
 
   public static void main(String[] args) {
