@@ -154,7 +154,7 @@ curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc5
 ```
 
 ```sh
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/95061baefc38dce031c95ca7ac1a815653c2c16b/init-client-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/f0ad56d7458cd3c73fcc4c876533901c3b6599a0/init-client-vm.sh | sudo bash
 ```
 
 6. When script finishes, exit ssh and power-off the VM
