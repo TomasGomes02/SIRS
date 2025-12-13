@@ -146,15 +146,15 @@ ssh <vm-user>@127.0.0.1 -p 2223
 5. Inside SSH session paste:
 
 ```sh
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/bb1c63b3328310bb676d2a99f7b03a15cc39ea9e/init-app-vm.sh  | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/d5f202a8c2ae34b37af10b0040a0d5243639a4c2/init-app-vm.sh  | sudo bash
 ```
 
 ```sh
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/fb978a8a206503989ed86de238aee5965a0fb22c/init-auth-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/44fff0036fae4e835d1e22b62dcadb7a6df24c83/init-auth-vm.sh | sudo bash
 ```
 
 ```sh
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/f0ad56d7458cd3c73fcc4c876533901c3b6599a0/init-client-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/03b7679b81313f6013894a15c518614b6840f061/init-client-vm.sh | sudo bash
 ```
 
 6. When script finishes, exit ssh and power-off the VM
