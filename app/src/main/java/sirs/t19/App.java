@@ -26,15 +26,15 @@ public class App {
       System.out.println("Server: Starting...");
 
       // Setup Identity (Server's Key)
-      File storeFile = extractResource("server.p12");
+      File storeFile = extractResource("app-server.p12");
       System.setProperty("javax.net.ssl.keyStore", storeFile.getAbsolutePath());
-      System.setProperty("javax.net.ssl.keyStorePassword", "serverpass");
+      System.setProperty("javax.net.ssl.keyStorePassword", "appserverpass");
       System.setProperty("javax.net.ssl.keyStoreType", "PKCS12");
 
       // Setup Trust (DB CA)
-      File trustFile = extractResource("server_truststore.jks");
+      File trustFile = extractResource("app_server_truststore.jks");
       System.setProperty("javax.net.ssl.trustStore", trustFile.getAbsolutePath());
-      System.setProperty("javax.net.ssl.trustStorePassword", "serverpass");
+      System.setProperty("javax.net.ssl.trustStorePassword", "appserverpass");
 
       // Connect DB
       db = new DatabaseService();

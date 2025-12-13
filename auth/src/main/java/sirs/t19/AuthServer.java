@@ -22,12 +22,12 @@ public class AuthServer {
       // Load Keys (Standard naming)
       File storeFile = extractResource("auth-server.p12");
       System.setProperty("javax.net.ssl.keyStore", storeFile.getAbsolutePath());
-      System.setProperty("javax.net.ssl.keyStorePassword", "serverpass");
+      System.setProperty("javax.net.ssl.keyStorePassword", "authserverpass");
       System.setProperty("javax.net.ssl.keyStoreType", "PKCS12");
 
       File trustFile = extractResource("auth_server_truststore.jks");
       System.setProperty("javax.net.ssl.trustStore", trustFile.getAbsolutePath());
-      System.setProperty("javax.net.ssl.trustStorePassword", "serverpass");
+      System.setProperty("javax.net.ssl.trustStorePassword", "authserverpass");
 
       db = new DatabaseService();
 
@@ -50,7 +50,8 @@ public class AuthServer {
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
       String line = in.readLine();
-      if (line == null) return;
+      if (line == null)
+        return;
       System.out.println("CMD: " + line);
 
       String[] parts = line.split(" ");
@@ -63,9 +64,10 @@ public class AuthServer {
             // Returns: <UUID> <TOKEN>
             if (parts.length == 5) {
               String newId = db.registerUser(parts[1], parts[2], parts[3], parts[4]);
-              String token = db.getUserCurrentToken(newId); 
+              String token = db.getUserCurrentToken(newId);
               out.println(newId + " " + token);
-            } else out.println("ERROR Format");
+            } else
+              out.println("ERROR Format");
             break;
 
           case "LOGIN":
@@ -79,7 +81,8 @@ public class AuthServer {
               } else {
                 out.println("ERROR Creds");
               }
-            } else out.println("ERROR Format");
+            } else
+              out.println("ERROR Format");
             break;
 
           case "REQUEST":
@@ -88,7 +91,8 @@ public class AuthServer {
             if (parts.length == 2) {
               String newToken = db.consumeUserToken(parts[1]);
               out.println(newToken);
-            } else out.println("ERROR Format");
+            } else
+              out.println("ERROR Format");
             break;
 
           default:
@@ -104,17 +108,21 @@ public class AuthServer {
 
   // Helper to load resources
   private static File extractResource(String name) {
-      try {
-        File temp = File.createTempFile(name, ".tmp");
-        temp.deleteOnExit();
-        try (InputStream is = AuthServer.class.getClassLoader().getResourceAsStream(name);
-            FileOutputStream os = new FileOutputStream(temp)) {
-          if (is == null) throw new RuntimeException("Resource " + name + " not found");
-          byte[] buffer = new byte[1024];
-          int read;
-          while ((read = is.read(buffer)) != -1) os.write(buffer, 0, read);
-        }
-        return temp;
-      } catch (IOException e) { throw new RuntimeException(e); }
+    try {
+      File temp = File.createTempFile(name, ".tmp");
+      temp.deleteOnExit();
+      try (InputStream is = AuthServer.class.getClassLoader().getResourceAsStream(name);
+          FileOutputStream os = new FileOutputStream(temp)) {
+        if (is == null)
+          throw new RuntimeException("Resource " + name + " not found");
+        byte[] buffer = new byte[1024];
+        int read;
+        while ((read = is.read(buffer)) != -1)
+          os.write(buffer, 0, read);
+      }
+      return temp;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
