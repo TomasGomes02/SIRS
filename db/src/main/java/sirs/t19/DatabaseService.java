@@ -25,7 +25,7 @@ public class DatabaseService {
   private final Gson gson = new Gson();
 
   public DatabaseService() {
-    String dbHost = System.getenv("MONGO_HOST") != null ? System.getenv("MONGO_HOST") : "localhost";
+    String dbHost = System.getenv("MONGO_HOST") != null ? System.getenv("MONGO_HOST") : "192.168.10.10";
     String uri = "mongodb://" + dbHost + ":27017/?tls=true";
 
     try {
