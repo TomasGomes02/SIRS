@@ -27,13 +27,13 @@ public class DatabaseService {
   public DatabaseService() {
     String dbHost = System.getenv("MONGO_HOST") != null ? System.getenv("MONGO_HOST") : "localhost";
     String uri;
+    
     if (dbHost.equals("localhost")) {
-      // Local testing: Use TLS but ignore the hostname mismatch (since cert is for
-      // 192.x.x.x)
-      uri = "mongodb://localhost:27017/?tls=true&tlsAllowInvalidHostnames=true";
+        // Local testing
+        uri = "mongodb://localhost:27017/?tls=true&tlsAllowInvalidHostnames=true";
     } else {
-      // Production (VMs): Strict TLS checking
-      uri = "mongodb://" + dbHost + ":27017/?tls=true";
+        // Production (VMs)
+        uri = "mongodb://" + dbHost + ":27017/?tls=true&tlsAllowInvalidHostnames=true";
     }
 
     try {
