@@ -47,7 +47,7 @@ public class SecureLibrary {
       InputStream trustInput = SecureLibrary.class.getClassLoader().getResourceAsStream("client_truststore.jks");
       if (trustInput != null) {
         KeyStore trustStore = KeyStore.getInstance("JKS");
-        trustStore.load(trustInput, "clientpass".toCharArray());
+        trustStore.load(trustInput, "changeit".toCharArray());
         TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(trustStore);
         SSLContext sslContext = SSLContext.getInstance("TLS");

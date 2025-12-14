@@ -25,9 +25,9 @@ public class AuthServer {
       System.setProperty("javax.net.ssl.keyStorePassword", "authserverpass");
       System.setProperty("javax.net.ssl.keyStoreType", "PKCS12");
 
-      File trustFile = extractResource("auth_server_truststore.jks");
+      File trustFile = extractResource("server_truststore.jks");
       System.setProperty("javax.net.ssl.trustStore", trustFile.getAbsolutePath());
-      System.setProperty("javax.net.ssl.trustStorePassword", "authserverpass");
+      System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
 
       db = new DatabaseService();
 

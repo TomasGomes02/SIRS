@@ -1,14 +1,12 @@
 # T19 CivicEcho Project Read Me
 
-<!-- this is an instruction line; after you follow the instruction, delete the corresponding line. Do the same for all instruction lines! -->
-
 ## Team
 
-| Number | Name            | User                                | E-mail                                |
-| ------ | --------------- | ----------------------------------- | ------------------------------------- |
-| 106869 | Martin Silveira | <https://github.com/MartinSilveira> | <martin.silveira@tecnico.ulisboa.pt>  |
-| 112307 | Tomás Gomes     | <https://github.com/TomasGomes02>   | <tomasldgomes2002@tecnico.ulisboa.pt> |
-| 117340 | Tomás Matos     | <https://github.com/tomasmatos6>    | <tomasmbmatos@tecnico.ulisboa.pt>     |
+| Number | Name            | User                                                                   | E-mail                                                                            |
+| ------ | --------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 106869 | Martin Silveira | [https://github.com/MartinSilveira](https://github.com/MartinSilveira) | [martin.silveira@tecnico.ulisboa.pt](mailto:martin.silveira@tecnico.ulisboa.pt)   |
+| 112307 | Tomás Gomes     | [https://github.com/TomasGomes02](https://github.com/TomasGomes02)     | [tomasldgomes2002@tecnico.ulisboa.pt](mailto:tomasldgomes2002@tecnico.ulisboa.pt) |
+| 117340 | Tomás Matos     | [https://github.com/tomasmatos6](https://github.com/tomasmatos6)       | [tomasmbmatos@tecnico.ulisboa.pt](mailto:tomasmbmatos@tecnico.ulisboa.pt)         |
 
 ![Alice](img/alice.png) ![Bob](img/bob.png) ![Charlie](img/charlie.png)
 
@@ -18,240 +16,221 @@ _(add face photos with 150px height; faces should have similar size and framing)
 
 This repository contains documentation and source code for the _Network and Computer Security (SIRS)_ project.
 
-The [REPORT](REPORT.md) document provides a detailed overview of the key technical decisions and various components of the implemented project.
-It offers insights into the rationale behind these choices, the project's architecture, and the impact of these decisions on the overall functionality and performance of the system.
+The [REPORT](REPORT.md) document provides a detailed overview of the key technical decisions and various components of the implemented project. It offers insights into the rationale behind these choices, the project's architecture, and the impact of these decisions on the overall functionality and performance of the system.
 
 This document presents installation and demonstration instructions.
 
-_(adapt all of the following to your project, changing to the specific Linux distributions, programming languages, libraries, etc)_
-
 ## Installation
 
-To see the project in action, it is necessary to setup a virtual environment, with 3 networks and 4 machines.
+To see the project in action, it is necessary to setup a virtual environment with **2 isolated networks** and **4 virtual machines**.
 
 The following diagram shows the networks and machines:
 
-![Figure 1 - Network diagram](img/diagrama_sirs_v5.png)
+### 0\. Prerequisites & Build
 
-### Prerequisites
+**Host Machine Requirements:**
 
-Database virtual machine and application virtual machine are based on: Ubuntu 22.04.4 live server
-[Download](https://old-releases.ubuntu.com/releases/22.04/ubuntu-22.04.4-live-server-amd64.iso) a virtual machine.
+- VirtualBox
+- Java 21+ & Maven (to build the JARs)
+- Base VM ISO: Ubuntu 22.04.4 live server ([Download](https://old-releases.ubuntu.com/releases/22.04/ubuntu-22.04.4-live-server-amd64.iso))
 
-### Machine configurations
-
-#### Network topology
-
-Create the following host-only networks in **VirtualBox -> File -> Tools -> Networks -> Host Network Manager**:
-
-| Network | Adapter # | IPv4 Address/Mask | DHCP |
-| ------- | --------- | ----------------- | ---- |
-| SW1     | #2        | 192.168.10.0/24   | OFF  |
-| SW2     | #3        | 192.168.20.0/24   | OFF  |
-
-Wire each VM as shown in the deployment diagram.
-
-#### Machine 1 - Database server
-
-This machine runs Ubuntu 22.04.4-live-server-amd and Mongodb v7.0.26
-
-setup:
-
-1. Create VM with **NAT** network, boot, log in.
-2. Inside VM console:
-   ```sh
-   sudo apt update
-   sudo apt install -y curl
-   ```
-3. [Add port forward] Power-off the VM -> Settings -> Network -> Adapter 1 -> Advanced -> Port Forward -> Add:
-
-| Name | Protocol | Host IP | Host Port | Guest IP | Guest Port |
-| ---- | -------- | ------- | --------- | -------- | ---------- |
-| ssh  | TCP      |         | 2222      |          | 22         |
-
-4. Power-on the VM and from **Host**:
+**Build the Project:**
+Before creating the VMs, you must build the project to generate the JAR files that will be shared with the VMs. Run this command in the root of the repository:
 
 ```sh
-ssh <vm-user>@127.0.0.1 -p 2222
+mvn clean package
 ```
 
-5. Inside SSH session paste:
+_Ensure that the `target/` folders and `.jar` files are created inside `app/`, `auth-server/`, `client/`, and `db/`._
 
-```sh
-curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/00051110076d444bfd32778545bc7f86f4f3cc3f/init-database-vm.sh | sudo bash
+### 1\. Network Configuration
+
+Create the following host-only networks in **VirtualBox -\> File -\> Tools -\> Network Manager**:
+
+| Network Name          | IPv4 Address/Mask | DHCP Server  |
+| :-------------------- | :---------------- | :----------- |
+| **SW1** (Network \#2) | `192.168.10.0/24` | **Disabled** |
+| **SW2** (Network \#3) | `192.168.20.0/24` | **Enabled**  |
+
+### 2\. Virtual Machines Setup
+
+We require 4 Virtual Machines. The setup process is identical for all of them, differing only in **Network Connections**, **Shared Folders**, and the **Initialization Script**.
+
+#### A. Create & Configure VMs
+
+For each machine (Database, App Server, Auth Server, Client), follow these steps:
+
+1.  **Create VM:** Use the Ubuntu 22.04 ISO.
+2.  **Initial Network:** Set Adapter 1 to **NAT** (to allow internet access during setup).
+3.  **Port Forwarding:** To SSH into them during setup, add a rule (Host Port: `2222`-`2225` -\> Guest Port: `22`).
+4.  **Shared Folders:** Go to **Settings -\> Shared Folders** and add the folder corresponding to the VM type.
+    - _Note: Check "Make Machine-permanent"._
+    - _Note: The "Folder Path" is the location on your host machine._
+
+| VM Role         | Shared Folder Path (Host)                 | Network Adapter 1 (Target) | Network Adapter 2 (Target) |
+| :-------------- | :---------------------------------------- | :------------------------- | :------------------------- |
+| **Database**    | `.../T19-CivicEcho/db/src/java/resources` | Host-only **SW1** (\#2)    | _None_                     |
+| **App Server**  | `.../T19-CivicEcho/app/target`            | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
+| **Auth Server** | `.../T19-CivicEcho/auth-server/target`    | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
+| **Client**      | `.../T19-CivicEcho/client/target`         | _None_                     | Host-only **SW2** (\#3)    |
+
+_(Note: During the "Installation Phase", keep Adapter 1 as NAT. You will switch to the Host-only networks listed above ONLY after running the script)._
+
+#### B. Installation & Scripts
+
+Boot each VM, log in, and run the following commands to set up the environment.
+
+**Database VM**
+
+```bash
+curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/ef61fa64964d404ba991792898b456df13404823/init-database-vm.sh | sudo bash
 ```
 
-6. When script finishes, exit ssh and power-off VM
+**App Server VM**
 
-7. [Isolate network] VM Settings -> Network -> Adapter 1 -> Attached to: Host-only Adapter #2 (192.168.10.0/24)
-
-To verify network isolation:
-
-1. Show ip route table:
-
-```sh
-ip route show
+```bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/d5f202a8c2ae34b37af10b0040a0d5243639a4c2/init-app-vm.sh | sudo bash
 ```
 
-2. Verify network isolation (no internet):
+**Auth Server VM**
 
-```sh
-ping -c 3 google.com
+```bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/47392de6758a537b9cff39fb7a155ae374480257/init-auth-vm.sh | sudo bash
 ```
 
-3. Verify reachability inside SW1:
+**Client VM**
 
-```sh
-ping -c 3 192.168.10.0
-```
-
-To verify database installation:
-
-```sh
-mongosh mongodb://192.168.10.10:27017 --eval 'db.adminCommand("ping")'
-```
-
-#### Machine 2 - App Server / Auth Server
-
-This machine runs Ubuntu 22.04.4 (Nginx + Tomcat9 + OpenJDK 25)
-
-setup:
-
-1. Create VM with **NAT** network, boot, log in
-2. Inside VM console:
-   ```sh
-   sudo apt update
-   sudo apt install -y curl
-   ```
-3a. [Add port forward] Power-off the VM -> Settings -> Network -> Adapter 1 -> Advanced -> Port Forward -> Add:
-
-| Name | Protocol | Host IP | Host Port | Guest IP | Guest Port |
-| ---- | -------- | ------- | --------- | -------- | ---------- |
-| ssh  | TCP      |         | 2223      |          | 22         |
-
-
-3b. [Add the shared folder resource] Select VM -> Settings -> Shared Folders -> Add new shared folder:
-
-|             Folder Path                   | Make Machine-permanent (if exists)  |
-| ----------------------------------------- | :--------------------------------:  |
-| T19-CivicEcho/{app/auth/client}/target    |                 X                   |
-
-
-4. Power-on the VM and from **Host**:
-
-```sh
-ssh <vm-user>@127.0.0.1 -p 2223
-```
-
-5. Inside SSH session paste:
-
-```sh
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/d5f202a8c2ae34b37af10b0040a0d5243639a4c2/init-app-vm.sh  | sudo bash
-```
-
-```sh
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/44fff0036fae4e835d1e22b62dcadb7a6df24c83/init-auth-vm.sh | sudo bash
-```
-
-```sh
+```bash
 curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/03b7679b81313f6013894a15c518614b6840f061/init-client-vm.sh | sudo bash
 ```
 
-6. When script finishes, exit ssh and power-off the VM
+3.  **Finalize Network Isolation:**
+    - **Power OFF** the VM.
+    - Change the **Network Adapters** in VirtualBox settings to match the table in **Step A**.
+      - _For Client:_ Change Adapter 1 to Host-Only SW2.
+      - _For Database:_ Change Adapter 1 to Host-Only SW1.
+      - _For App and Auth:_ Change Adapter 1 to Host-Only SW1 and enable Adapter 2 with Host-Only SW2.
+    - **Power ON** the VM.
 
-7. [Isolate network] VM Settings -> Network -> Adapter 1 -> Attached to: Host-only Adapter #2 (192.168.10.0/24)
+### 3\. Verification
 
-8. [Isolate network] VM Settings -> Network -> Adapter 2 -> Attached to: Host-only Adapter #3 (192.168.20.0/24)
+After rebooting into the isolated networks, verify connectivity and services.
 
-To verify network isolation:
-
-1. Show ip route table:
+**1. Network Isolation (All VMs)**
 
 ```sh
 ip route show
+
+ping -c 3 google.com   # Should FAIL (No internet)
 ```
 
-2. Verify network isolation (no internet):
+**2. Database Server (`192.168.10.10`)**
 
 ```sh
-ping -c 3 google.com
+# Check if MongoDB is running and reachable
+mongosh mongodb://192.168.10.10:27017 --eval 'db.adminCommand("ping")'
+
+# Verify connection to App Server
+ping -c 3 192.168.10.20
+
+# Verify connection to Auth Server
+ping -c 3 192.168.10.11
 ```
 
-3. Verify reachability inside SW1:
+**3. App/Auth Servers (`192.168.10.20`, `192.168.10.11`)**
 
 ```sh
-ping -c 3 192.168.10.0
+# Verify connection to DB
+ping -c 3 192.168.10.10
 ```
 
-4. Verify reachability inside SW2:
+**4. Client Machine (`192.168.20.100`)**
 
 ```sh
-ping -c 3 192.168.20.0
+# Verify connection to App Server
+ping -c 3 192.168.20.20
+
+# Verify connection to Auth Server
+ping -c 3 192.168.20.10
 ```
 
-To verify application services:
+### Troubleshooting
 
-```
-# After certificate signing, test proper SSL:
-curl https://192.168.10.20
-```
+#### In case your host machine is blocking the switches do this:
 
-_(replace with actual commands)_
+#### **Windows**
 
-To test:
+- Enable Ipv4 pings in windows
+
+#### **Linux**
 
 ```sh
-$ test command
+
 ```
-
-_(replace with actual commands)_
-
-The expected results are ...
-
-_(explain what is supposed to happen if all goes well)_
-
-If you receive the following message ... then ...
-
-_(explain how to fix some known problem)_
-
-#### Machine ...
-
-_(similar content structure as Machine 1)_
 
 ## Demonstration
 
-Now that all the networks and machines are up and running, ...
+Now that the system is running, you can demonstrate the full flow.
 
-_(give a tour of the best features of the application; add screenshots when relevant)_
+### 1\. User Registration & Login (Client VM)
+
+On the Client VM, run the application:
 
 ```sh
-$ demo command
+java -jar /opt/civicecho/app/client-app-1.0-SNAPSHOT.jar
 ```
 
-_(replace with actual commands)_
+- **Register:** Creates a new user key pair and registers with the Auth Server.
+- **Login:** Authenticates using the Challenge-Response protocol.
 
-_(IMPORTANT: show evidence of the security mechanisms in action; show message payloads, print relevant messages, perform simulated attacks to show the defenses in action, etc.)_
+### 2\. Submitting a Report
 
-This concludes the demonstration.
+```sh
+# Inside the client CLI
+report
+```
+
+- _Observation:_ The client requests a nonce, signs the report, encrypts it (Hybrid Encryption), and submits it.
+
+### 3\. Security Checks (Attacks)
+
+To demonstrate resilience, simulate the following attacks:
+
+**Replay Attack:**
+Capture a valid `SUBMIT` payload and try sending it again using `curl`:
+
+```sh
+curl -X POST -d @captured_payload.json 192.168.20.20:8443
+```
+
+_Expected Result:_ The server rejects the request with `401 Unauthorized` or `Invalid Nonce`.
+
+**Man-in-the-Middle (MITM):**
+Try to inspect traffic between Client and App Server using Wireshark/tcpdump on the SW2 interface.
+_Expected Result:_ All traffic is encrypted via TLS, making the payload unreadable.
+
+**Pinging database directly:**
+Try to ping the database directly as an attacker (client machine) from inside and outside the network.
+
+```sh
+ping -c 3 192.168.10.10
+```
 
 ## Additional Information
 
 ### Links to Used Tools and Libraries
 
-- [Java 25.0.1](https://openjdk.java.net/)
+- [Java 25](https://openjdk.java.net/)
 - [Maven 3.9.11](https://maven.apache.org/)
-- ...
+- [MongoDB 7.0](https://www.mongodb.com/)
+- [Google Gson](https://github.com/google/gson) (JSON handling)
 
 ### Versioning
 
-We use [SemVer](http://semver.org/) for versioning.
+We use [Github](https://github.com/) for versioning.
 
 ### License
 
-This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) for details.
-
-_(switch to another license, or no license, as you see fit)_
+This project is licensed under the MIT License - see the [LICENSE.txt](https://www.google.com/search?q=LICENSE.txt) for details.
 
 ---
-
-END OF README

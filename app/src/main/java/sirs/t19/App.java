@@ -32,9 +32,9 @@ public class App {
       System.setProperty("javax.net.ssl.keyStoreType", "PKCS12");
 
       // Setup Trust (DB CA)
-      File trustFile = extractResource("app_server_truststore.jks");
+      File trustFile = extractResource("server_truststore.jks");
       System.setProperty("javax.net.ssl.trustStore", trustFile.getAbsolutePath());
-      System.setProperty("javax.net.ssl.trustStorePassword", "appserverpass");
+      System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
 
       // Connect DB
       db = new DatabaseService();
