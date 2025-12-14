@@ -36,23 +36,19 @@ public class SecureLibrary {
   private static final String PRIVATE_KEY_DIR = "keys";
 
   // -- IPs Config --
-  private static final String APP_HOST =
-      System.getenv("APP_HOST") != null ? System.getenv("APP_HOST") : "localhost";
+  private static final String APP_HOST = System.getenv("APP_HOST") != null ? System.getenv("APP_HOST") : "localhost";
 
-  private static final String AUTH_HOST =
-      System.getenv("AUTH_HOST") != null ? System.getenv("AUTH_HOST") : "localhost";
+  private static final String AUTH_HOST = System.getenv("AUTH_HOST") != null ? System.getenv("AUTH_HOST") : "localhost";
 
   private static final int APP_PORT = 8443;
   private static final int AUTH_PORT = 8444;
   static {
     try {
-      InputStream trustInput =
-          SecureLibrary.class.getClassLoader().getResourceAsStream("client_truststore.jks");
+      InputStream trustInput = SecureLibrary.class.getClassLoader().getResourceAsStream("client_truststore.jks");
       if (trustInput != null) {
         KeyStore trustStore = KeyStore.getInstance("JKS");
         trustStore.load(trustInput, "clientpass".toCharArray());
-        TrustManagerFactory tmf =
-            TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(trustStore);
         SSLContext sslContext = SSLContext.getInstance("TLS");
         sslContext.init(null, tmf.getTrustManagers(), null);
@@ -66,7 +62,8 @@ public class SecureLibrary {
   // --- AUTOMATED FLOW ---
 
   /**
-   * Encrypts, Signs, Submits to App Server, then Refreshes Token with Auth Server. Returns the NEW
+   * Encrypts, Signs, Submits to App Server, then Refreshes Token with Auth
+   * Server. Returns the NEW
    * Token.
    */
   public static String protectAndSubmit(JsonObject reportData, String userId, String currentToken)
@@ -132,7 +129,7 @@ public class SecureLibrary {
     String token = parts[1];
 
     saveLocalPrivateKey(userId, pair.getPrivate());
-    return new String[] {userId, token};
+    return new String[] { userId, token };
   }
 
   // Returns String[] { userId, token } or null
@@ -143,7 +140,7 @@ public class SecureLibrary {
 
     // Expects: "UUID TOKEN"
     String[] parts = resp.trim().split(" ");
-    return new String[] {parts[0], parts[1]};
+    return new String[] { parts[0], parts[1] };
   }
 
   // --- SERVER COMMANDS (Routing) ---
@@ -161,7 +158,7 @@ public class SecureLibrary {
   }
 
   public static JsonObject fetchAndDecryptReport(String reportId, String userId) throws Exception {
-    String jsonResp = sendAppCommand("GET_REPORT " + reportId);
+    String jsonResp = sendAppCommand("GET_REPORT " + reportId + " " + userId);
     if (jsonResp.startsWith("ERROR"))
       throw new Exception(jsonResp);
 
@@ -173,17 +170,16 @@ public class SecureLibrary {
 
   public static void submitDecision(String reportId, String decision, String userId)
       throws IOException {
-    String resp =
-        sendAppCommand(String.format("UPDATE_STATUS %s %s %s", reportId, decision, userId));
+    String resp = sendAppCommand(String.format("UPDATE_STATUS %s %s %s", reportId, decision, userId));
     if (!resp.startsWith("OK"))
       throw new RuntimeException(resp);
   }
 
-  public static boolean checkRemote(String reportId) {
+  public static boolean checkRemote(String reportId, String userId) {
     try {
-      String jsonResp = sendAppCommand("GET_REPORT " + reportId);
+      String jsonResp = sendAppCommand("GET_REPORT " + reportId + " " + userId);
       if (jsonResp.startsWith("ERROR")) {
-        System.err.println("Report not found on server.");
+        System.err.println("Report not found or access denied on server.");
         return false;
       }
       JsonObject envelope = new Gson().fromJson(jsonResp, JsonObject.class);
@@ -245,8 +241,7 @@ public class SecureLibrary {
     metadata.addProperty("status", "WAITING");
 
     SecretKey sessionKey = CryptoUtils.generateAESKey();
-    byte[] encryptedBytes =
-        CryptoUtils.encrypt(sessionKey, new Gson().toJson(reportData).getBytes());
+    byte[] encryptedBytes = CryptoUtils.encrypt(sessionKey, new Gson().toJson(reportData).getBytes());
 
     JsonObject recipients = new JsonObject();
     PublicKey myKey = getPublicKeyFromServer(userId);
@@ -258,8 +253,7 @@ public class SecureLibrary {
     envelope.add("recipients", recipients);
     envelope.addProperty("ciphertext", Base64.getEncoder().encodeToString(encryptedBytes));
 
-    String dataToSign =
-        metadata.toString() + recipients.toString() + envelope.get("ciphertext").getAsString();
+    String dataToSign = metadata.toString() + recipients.toString() + envelope.get("ciphertext").getAsString();
     Signature rsa = Signature.getInstance("SHA256withRSA");
     rsa.initSign(loadLocalPrivateKey(userId));
     rsa.update(dataToSign.getBytes());
@@ -290,8 +284,7 @@ public class SecureLibrary {
     byte[] wrappedKey = Base64.getDecoder().decode(recipients.get(userId).getAsString());
     SecretKey sessionKey = CryptoUtils.unwrapKey(myPrivKey, wrappedKey);
     String cipherTextB64 = envelope.get("ciphertext").getAsString();
-    byte[] decryptedBytes =
-        CryptoUtils.decrypt(sessionKey, Base64.getDecoder().decode(cipherTextB64));
+    byte[] decryptedBytes = CryptoUtils.decrypt(sessionKey, Base64.getDecoder().decode(cipherTextB64));
     return new Gson().fromJson(new String(decryptedBytes), JsonObject.class);
   }
 
@@ -307,8 +300,7 @@ public class SecureLibrary {
       Signature rsa = Signature.getInstance("SHA256withRSA");
       rsa.initVerify(authorKey);
       rsa.update(dataToVerify.getBytes());
-      boolean valid =
-          rsa.verify(Base64.getDecoder().decode(envelope.get("signature").getAsString()));
+      boolean valid = rsa.verify(Base64.getDecoder().decode(envelope.get("signature").getAsString()));
 
       if (valid)
         System.out.println("Integrity Check: VALID (Signed by " + authorId + ")");

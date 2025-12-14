@@ -28,11 +28,12 @@ public class DatabaseService {
     String dbHost = System.getenv("MONGO_HOST") != null ? System.getenv("MONGO_HOST") : "localhost";
     String uri;
     if (dbHost.equals("localhost")) {
-        // Local testing: Use TLS but ignore the hostname mismatch (since cert is for 192.x.x.x)
-        uri = "mongodb://localhost:27017/?tls=true&tlsAllowInvalidHostnames=true"; 
+      // Local testing: Use TLS but ignore the hostname mismatch (since cert is for
+      // 192.x.x.x)
+      uri = "mongodb://localhost:27017/?tls=true&tlsAllowInvalidHostnames=true";
     } else {
-        // Production (VMs): Strict TLS checking
-        uri = "mongodb://" + dbHost + ":27017/?tls=true";
+      // Production (VMs): Strict TLS checking
+      uri = "mongodb://" + dbHost + ":27017/?tls=true";
     }
 
     try {
@@ -80,8 +81,7 @@ public class DatabaseService {
 
   public String getUserRole(String userId) {
     try {
-      Document user =
-          usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
+      Document user = usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
       return (user != null) ? user.getString("role") : "unknown";
     } catch (Exception e) {
       return "unknown";
@@ -90,8 +90,7 @@ public class DatabaseService {
 
   public PublicKey getUserPublicKey(String userId) {
     try {
-      Document user =
-          usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
+      Document user = usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
       if (user == null)
         return null;
       byte[] bytes = Base64.getDecoder().decode(user.getString("publicKey"));
@@ -105,21 +104,29 @@ public class DatabaseService {
 
   public String getUserCurrentToken(String userId) {
     try {
-      Document user =
-          usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
+      Document user = usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
       return (user != null) ? user.getString("token") : null;
     } catch (Exception e) {
       return null;
     }
   }
 
+  public int getUserTokenAmount(String userId) {
+    try {
+      Document user = usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
+      return (user != null) ? user.getInteger("n_tokens") : -1;
+    } catch (Exception e) {
+      return -1;
+    }
+  }
+
   /**
-   * Consumes 1 token count and generates a NEW token string. Returns the NEW token.
+   * Consumes 1 token count and generates a NEW token string. Returns the NEW
+   * token.
    */
   public String consumeUserToken(String userId) {
     try {
-      Document user =
-          usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
+      Document user = usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
       if (user == null)
         throw new RuntimeException("User not found");
 
@@ -144,8 +151,7 @@ public class DatabaseService {
 
   public long getNextNonce(String userId) {
     try {
-      Document user =
-          usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
+      Document user = usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
       return (user != null) ? user.getLong("nonce") + 1 : 0;
     } catch (Exception e) {
       return -1;

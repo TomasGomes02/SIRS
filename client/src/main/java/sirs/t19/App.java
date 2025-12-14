@@ -30,12 +30,14 @@ public class App {
       Completer fileCompleter = new FileNameCompleter();
       Completer guestCompleter = new StringsCompleter("login", "register", "help", "exit");
 
-      // Citizen: report (full flow), protect/unprotect (manual files), check (manual file)
+      // Citizen: report (full flow), protect/unprotect (manual files), check (manual
+      // file)
       Completer citizenCompleter = new ArgumentCompleter(
           new StringsCompleter("report", "protect", "unprotect", "check", "logout", "help", "exit"),
           fileCompleter);
 
-      // Municipality: analyze (full flow), protect/unprotect (manual files), check (manual file)
+      // Municipality: analyze (full flow), protect/unprotect (manual files), check
+      // (manual file)
       Completer municipalityCompleter = new ArgumentCompleter(new StringsCompleter("analyze",
           "protect", "unprotect", "check", "logout", "help", "exit"), fileCompleter);
 
@@ -49,8 +51,7 @@ public class App {
         }
       };
 
-      LineReader lineReader =
-          LineReaderBuilder.builder().terminal(terminal).completer(dynamicCompleter).build();
+      LineReader lineReader = LineReaderBuilder.builder().terminal(terminal).completer(dynamicCompleter).build();
 
       System.out.println("--------------------------------------------------");
       System.out.println("      CivicEcho Client Terminal (v15.0)           ");
@@ -102,8 +103,7 @@ public class App {
                 if (argsList.length < 3)
                   System.err.println("Usage: register <user> <pass> <role>");
                 else {
-                  String[] creds =
-                      SecureLibrary.registerUser(argsList[0], argsList[1], argsList[2]);
+                  String[] creds = SecureLibrary.registerUser(argsList[0], argsList[1], argsList[2]);
                   if (creds != null) {
                     currentUserId = creds[0];
                     currentToken = creds[1];
@@ -130,14 +130,14 @@ public class App {
               // --- FULL FLOW COMMANDS ---
               case "report":
                 if ("municipality".equals(currentRole))
-                  System.err.println("Municipalities cannot submit reports.");
+                  System.err.println("Unknown command.");
                 else
                   handleReportFlow(lineReader);
                 break;
 
               case "analyze":
                 if (!"municipality".equals(currentRole))
-                  System.err.println("Access Denied.");
+                  System.err.println("Unknown command.");
                 else
                   handleAnalyze(lineReader);
                 break;
@@ -161,14 +161,13 @@ public class App {
                 if (argsList.length < 1)
                   System.err.println("Usage: check <in_file> OR check <server_report_id>");
                 else {
-                  // Quick hack to distinguish file vs ID: try to find file, else check remote
                   java.io.File f = new java.io.File(argsList[0]);
                   if (f.exists()) {
                     System.out.println("Checking local file...");
                     SecureLibrary.check(argsList[0]);
                   } else {
                     System.out.println("Checking remote report ID...");
-                    SecureLibrary.checkRemote(argsList[0]);
+                    SecureLibrary.checkRemote(argsList[0], currentUserId);
                   }
                 }
                 break;

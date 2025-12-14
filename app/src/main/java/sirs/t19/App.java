@@ -162,12 +162,33 @@ public class App {
             break;
 
           case "GET_REPORT":
-            // GET_REPORT <report_id>
-            // Access Control: If status=WAITING, ensure user is Municipality or Author?
-            // (Simplification: Server serves data, encryption handles confidentiality)
-            if (parts.length == 2) {
-              String json = db.getReportJson(parts[1]);
-              out.println(json != null ? json : "ERROR Not Found");
+            // GET_REPORT <report_id> <requester_id>
+            // Access Control: Only the municipality or the report author may fetch the
+            // report
+            if (parts.length == 3) {
+              String reportId = parts[1];
+              String requester = parts[2];
+              String role = db.getUserRole(requester);
+              String json = db.getReportJson(reportId);
+              if (json == null) {
+                out.println("ERROR Not Found");
+              } else {
+                try {
+                  Gson gson = new Gson();
+                  JsonObject envelope = gson.fromJson(json, JsonObject.class);
+                  JsonObject metadata = envelope.getAsJsonObject("metadata");
+                  String author = metadata != null && metadata.has("author_id")
+                      ? metadata.get("author_id").getAsString()
+                      : null;
+                  if ("municipality".equals(role) || (author != null && author.equals(requester))) {
+                    out.println(json);
+                  } else {
+                    out.println("ERROR Access Denied");
+                  }
+                } catch (Exception e) {
+                  out.println("ERROR Invalid Report Format");
+                }
+              }
             } else
               out.println("ERROR Format");
             break;
@@ -201,17 +222,13 @@ public class App {
     String[] line = json.split(" ");
     JsonObject envelope = gson.fromJson(line[0], JsonObject.class);
 
-    // envelope format might be: { "report_id": { "metadata":..., "ciphertext":... } }
-    // OR just { "metadata":..., "ciphertext":... } depending on how client sends it.
-    // The updated client sends: { "report_id": { ...envelope... } }
-
-    // We need to extract the inner envelope to verify signature
-    String reportId = envelope.keySet().iterator().next(); // Get the first key (Report ID)
+    String reportId = envelope.keySet().iterator().next();
     JsonObject inner = envelope.getAsJsonObject(reportId);
 
     JsonObject meta = inner.getAsJsonObject("metadata");
     String uid = meta.get("author_id").getAsString();
     long nonce = meta.get("nonce").getAsLong();
+    String token = meta.get("token").getAsString();
 
     // 1. Verify User Exists
     PublicKey pub = db.getUserPublicKey(uid);
@@ -234,7 +251,16 @@ public class App {
     if (!rsa.verify(Base64.getDecoder().decode(inner.get("signature").getAsString())))
       throw new SecurityException("Invalid Signature");
 
-    // 4. Store (Store the inner envelope keyed by ID)
+    // 4. Verify Token
+    if (!(db.getUserCurrentToken(uid) == token)) {
+      throw new SecurityException("Invalid token");
+    }
+
+    if (db.getUserTokenAmount(uid) <= 0) {
+      throw new SecurityException("No more tokens");
+    }
+
+    // 5. Store (Store the inner envelope keyed by ID)
     db.storeReport(inner, reportId);
   }
 }
