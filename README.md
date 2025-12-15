@@ -67,12 +67,12 @@ For each machine (Database, App Server, Auth Server, Client), follow these steps
     - _Note: Check "Make Machine-permanent"._
     - _Note: The "Folder Path" is the location on your host machine._
 
-| VM Role         | Shared Folder Path (Host)                 | Network Adapter 1 (Target) | Network Adapter 2 (Target) |
-| :-------------- | :---------------------------------------- | :------------------------- | :------------------------- |
-| **Database**    | `.../T19-CivicEcho/db/src/java/resources` | Host-only **SW1** (\#2)    | _None_                     |
-| **App Server**  | `.../T19-CivicEcho/app/target`            | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
-| **Auth Server** | `.../T19-CivicEcho/auth-server/target`    | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
-| **Client**      | `.../T19-CivicEcho/client/target`         | _None_                     | Host-only **SW2** (\#3)    |
+| VM Role         | Username    |Shared Folder Path (Host)                  | Network Adapter 1 (Target) | Network Adapter 2 (Target) |
+| :-------------- | ----------- | :---------------------------------------- | :------------------------- | :------------------------- |
+| **Database**    | database    | `.../T19-CivicEcho/db/src/java/resources` | Host-only **SW1** (\#2)    | _None_                     |
+| **App Server**  | app         | `.../T19-CivicEcho/app/target`            | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
+| **Auth Server** | auth        | `.../T19-CivicEcho/auth-server/target`    | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
+| **Client**      | client      | `.../T19-CivicEcho/client/target`         | _None_                     | Host-only **SW2** (\#3)    |
 
 _(Note: During the "Installation Phase", keep Adapter 1 as NAT. You will switch to the Host-only networks listed above ONLY after running the script)._
 
@@ -83,25 +83,25 @@ Boot each VM, log in, and run the following commands to set up the environment.
 **Database VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/efab6cb13ada1d2e3d2253f5bccb78b85ad628e6/init-database-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/b3bd080fe94855361158b15517134c933adaa38e/init-database-vm.sh | sudo bash
 ```
 
 **App Server VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/ee2180526682f8e8cdb550ed7daa996909e3ed3a/init-app-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/d448d05efa22226abd99745a3f9ebb3b67f19369/init-app-vm.sh | sudo bash
 ```
 
 **Auth Server VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/257d6354a3911ed817b029d8f677736930a782d9/init-auth-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/e392dea9d0bff791416bb074eaf5f29583df6e7c/init-auth-vm.sh | sudo bash
 ```
 
 **Client VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/8425de91643c78494c7f3207c8fe05ca74ae0e47/init-client-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/6423b436728c61d3a580cb10ee50454848f36fc1/init-client-vm.sh | sudo bash
 ```
 
 3.  **Finalize Network Isolation:**
