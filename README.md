@@ -83,7 +83,7 @@ Boot each VM, log in, and run the following commands to set up the environment.
 **Database VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/745b081368faaf773a933301731126cbeefd8d40/init-database-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/efab6cb13ada1d2e3d2253f5bccb78b85ad628e6/init-database-vm.sh | sudo bash
 ```
 
 **App Server VM**
