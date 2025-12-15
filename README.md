@@ -89,7 +89,7 @@ curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1
 **App Server VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/229d6b582969fde98e98403e0750743ca0a88c85/init-app-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/ee2180526682f8e8cdb550ed7daa996909e3ed3a/init-app-vm.sh | sudo bash
 ```
 
 **Auth Server VM**
