@@ -44,7 +44,7 @@ public class SecureLibrary {
   private static final int AUTH_PORT = 8444;
   static {
     try {
-      InputStream trustInput = SecureLibrary.class.getClassLoader().getResourceAsStream("client_truststore.jks");
+      InputStream trustInput = SecureLibrary.class.getClassLoader().getResourceAsStream("server_truststore.jks");
       if (trustInput != null) {
         KeyStore trustStore = KeyStore.getInstance("JKS");
         trustStore.load(trustInput, "changeit".toCharArray());
