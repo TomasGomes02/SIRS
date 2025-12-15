@@ -95,7 +95,7 @@ curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0b
 **Auth Server VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/6fc61e54ec5f831cac63353ea44e927643fba54a/init-auth-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/257d6354a3911ed817b029d8f677736930a782d9/init-auth-vm.sh | sudo bash
 ```
 
 **Client VM**
