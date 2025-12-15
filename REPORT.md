@@ -74,92 +74,101 @@ END OF REPORT
 
 ### Generating the certificates
 
-#### Database Certificate:
+# 1. Create Config for the SERVERS (Mongo, App, Auth)
 
-# 1. Generate DB Private Key
+# These are the machines that need the IP addresses/SANs.
 
-openssl genrsa -out db-ca.key 4096
-
-# 2. Generate DB Self-Signed Certificate
-
-# CN=CivicDB-CA is the issuer name everyone will see
-
-openssl req -x509 -new -nodes -key db-ca.key -sha256 -days 365 \
- -out db-ca.crt \
- -subj "/C=PT/ST=Lisbon/L=Oeiras/O=CivicEcho/OU=DB/CN=CivicDB-CA"
-
-#### App Server Certificate:
-
-# 1. Generate App Server Private Key
-
-openssl genrsa -out app-server.key 2048
-
-# 2. Create Certificate Signing Request (CSR)
-
-# CN must match the hostname (e.g., localhost)
-
-openssl req -new -key app-server.key -out app-server.csr \
- -subj "/C=PT/ST=Lisbon/L=Oeiras/O=CivicEcho/OU=App/CN=localhost"
-
-# 3. Create a configuration file for SAN (Required for localhost)
-
-cat > app-ext.cnf <<EOF
-authorityKeyIdentifier=keyid,issuer
-basicConstraints=CA:FALSE
-keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+cat > server_san.cnf <<EOF
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+prompt = no
+[req_distinguished_name]
+C = PT
+O = CivicEcho
+CN = Generic-Server
+[v3_req]
+keyUsage = keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth, clientAuth
 subjectAltName = @alt_names
-
 [alt_names]
+IP.1 = 192.168.10.10
+IP.2 = 192.168.10.20
+IP.3 = 192.168.10.11
+IP.4 = 192.168.20.20
+IP.5 = 192.168.20.10
 DNS.1 = localhost
-IP.1 = 127.0.0.1
 EOF
 
-# 4. Sign the App Server CSR using the DB CA
+# 2. Create the Root CA (Self-Signed)
 
-openssl x509 -req -in app-server.csr -CA db-ca.crt -CAkey db-ca.key \
- -CAcreateserial -out app-server.crt -days 365 -sha256 -extfile app-ext.cnf
+# CA does NOT need the IPs. It just needs to be a valid Authority.
 
-#### Auth Server Certificate:
+openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+ -keyout db-ca.key -out db-ca.crt \
+ -subj "/C=PT/O=CivicEcho/CN=CivicEcho-Root-CA"
 
-# 1. Generate Auth Server Private Key
+# 3. Create PEM bundle for Mongo (Key + Cert)
 
-openssl genrsa -out auth-server.key 2048
+cat db-ca.crt db-ca.key > db-ca.pem
 
-# 2. Create Certificate Signing Request (CSR)
+# 4. Generate & Sign App-Server Cert
 
-openssl req -new -key auth-server.key -out auth-server.csr \
- -subj "/C=PT/ST=Lisbon/L=Oeiras/O=CivicEcho/OU=Auth/CN=localhost"
+openssl req -new -nodes -newkey rsa:2048 \
+ -keyout app-server.key -out app-server.csr \
+ -subj "/C=PT/O=CivicEcho/CN=App-Server" \
+ -config server_san.cnf
 
-# 3. Create configuration for SAN (Reuse same SAN config if running on localhost)
-
-# (We can reuse app-ext.cnf or create auth-ext.cnf if IPs differ)
-
-cp app-ext.cnf auth-ext.cnf
-
-# 4. Sign the Auth Server CSR using the DB CA
-
-openssl x509 -req -in auth-server.csr -CA db-ca.crt -CAkey db-ca.key \
- -CAcreateserial -out auth-server.crt -days 365 -sha256 -extfile auth-ext.cnf
-
-#### Package Keys for Java:
-
-##### Create Server Identity Keystore
-
-# For App Server (Password: appserverpass)
+openssl x509 -req -in app-server.csr \
+ -CA db-ca.crt -CAkey db-ca.key -CAcreateserial \
+ -out app-server.crt -days 365 \
+ -extensions v3_req -extfile server_san.cnf
 
 openssl pkcs12 -export -in app-server.crt -inkey app-server.key \
  -out app-server.p12 -name app-server \
- -CAfile db-ca.crt -caname root -passout pass:serverpass
+ -CAfile db-ca.crt -caname root-ca \
+ -passout pass:appserverpass
 
-# For Auth Server (Password: authserverpass)
+# 5. Generate & Sign Auth-Server Cert
+
+openssl req -new -nodes -newkey rsa:2048 \
+ -keyout auth-server.key -out auth-server.csr \
+ -subj "/C=PT/O=CivicEcho/CN=Auth-Server" \
+ -config server_san.cnf
+
+openssl x509 -req -in auth-server.csr \
+ -CA db-ca.crt -CAkey db-ca.key -CAcreateserial \
+ -out auth-server.crt -days 365 \
+ -extensions v3_req -extfile server_san.cnf
 
 openssl pkcs12 -export -in auth-server.crt -inkey auth-server.key \
  -out auth-server.p12 -name auth-server \
- -CAfile db-ca.crt -caname root -passout pass:serverpass
+ -CAfile db-ca.crt -caname root-ca \
+ -passout pass:authserverpass
 
-##### Create the Common Truststore
+# 6. Generate Key & CSR for MongoDB
 
-# Import DB CA certificate into a new Java KeyStore (Password: clientpass)
+openssl req -new -nodes -newkey rsa:2048 \
+ -keyout mongodb-server.key -out mongodb-server.csr \
+ -subj "/C=PT/O=CivicEcho/CN=sirs-database1" \
+ -config server_san.cnf
 
-keytool -import -trustcacerts -noprompt -alias db-ca \
- -file db-ca.crt -keystore truststore.jks -storepass clientpass
+# 7. Sign it with your CA
+
+openssl x509 -req -in mongodb-server.csr \
+ -CA db-ca.crt -CAkey db-ca.key -CAcreateserial \
+ -out mongodb-server.crt -days 365 \
+ -extensions v3_req -extfile server_san.cnf
+
+# 8. Create the PEM bundle (Key + Cert) for MongoDB
+
+cat mongodb-server.key mongodb-server.crt > mongodb-server.pem
+
+# 9. Create Java Truststore
+
+# (Delete old one first to avoid duplicates)
+
+rm -f server_truststore.jks
+keytool -import -alias db-ca -file db-ca.crt \
+ -keystore server_truststore.jks \
+ -storepass changeit -noprompt
