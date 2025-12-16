@@ -73,16 +73,16 @@ public class SecureLibrary {
     long nonce = getNextNonce(userId);
 
     // 2. Crypto (Create Envelope)
-    JsonObject envelope = createProtectedEnvelope(reportData, userId, nonce);
+    JsonObject envelope = createProtectedEnvelope(reportData, userId, nonce, currentToken);
 
     // 3. Wrap in root
     JsonObject root = new JsonObject();
     root.add(reportData.get("report_id").getAsString(), envelope);
 
     // 4. Submit to APP SERVER with TOKEN
-    // Protocol: SUBMIT <json_data> <token>
+    // Protocol: SUBMIT <json_data>
     System.out.println("Client: Submitting to App Server...");
-    String cmd = "SUBMIT " + new Gson().toJson(root) + " " + currentToken;
+    String cmd = "SUBMIT " + new Gson().toJson(root);
     String response = sendAppCommand(cmd);
 
     if (!response.startsWith("OK"))
@@ -210,6 +210,27 @@ public class SecureLibrary {
         .generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(resp)));
   }
 
+  public static List<String> getUserIds() {
+    try {
+      String resp = sendAppCommand("GET_USERS");
+      if (resp.startsWith("ERROR") || resp.isEmpty())
+        return Collections.emptyList();
+      return Arrays.asList(resp.split(","));
+    } catch (Exception e) {
+      System.err.println("Warning: Could not fetch users: " + e.getMessage());
+      return Collections.emptyList();
+    }
+  }
+
+  public static List<String> getViewableReports(String userId) throws Exception {
+    String resp = sendAppCommand("GET_VIEWABLE_REPORTS " + userId);
+    if (resp.startsWith("ERROR"))
+      return Collections.emptyList();
+    if (resp.isEmpty())
+      return Collections.emptyList();
+    return Arrays.asList(resp.split(","));
+  }
+
   // --- NETWORK ROUTING ---
 
   private static String sendAuthCommand(String cmd) throws IOException {
@@ -234,19 +255,26 @@ public class SecureLibrary {
   // --- CRYPTO LOGIC ---
 
   private static JsonObject createProtectedEnvelope(JsonObject reportData, String userId,
-      long nonce) throws Exception {
+      long nonce, String currentToken) throws Exception {
     JsonObject metadata = new JsonObject();
     metadata.addProperty("author_id", userId);
     metadata.addProperty("nonce", nonce);
-    metadata.addProperty("status", "WAITING");
+    metadata.addProperty("token", currentToken);
 
     SecretKey sessionKey = CryptoUtils.generateAESKey();
     byte[] encryptedBytes = CryptoUtils.encrypt(sessionKey, new Gson().toJson(reportData).getBytes());
 
     JsonObject recipients = new JsonObject();
-    PublicKey myKey = getPublicKeyFromServer(userId);
-    recipients.addProperty(userId,
-        Base64.getEncoder().encodeToString(CryptoUtils.wrapKey(myKey, sessionKey)));
+
+    List<String> allUsers = getUserIds();
+
+    for (String targetId : allUsers) {
+      PublicKey k = getPublicKeyFromServer(targetId);
+      if (k != null) {
+        recipients.addProperty(targetId,
+            Base64.getEncoder().encodeToString(CryptoUtils.wrapKey(k, sessionKey)));
+      }
+    }
 
     JsonObject envelope = new JsonObject();
     envelope.add("metadata", metadata);
@@ -293,10 +321,13 @@ public class SecureLibrary {
       JsonObject metadata = envelope.getAsJsonObject("metadata");
       String authorId = metadata.get("author_id").getAsString();
       PublicKey authorKey = getPublicKeyFromServer(authorId);
+
       if (authorKey == null)
         return false;
+
       String dataToVerify = metadata.toString() + envelope.get("recipients").toString()
           + envelope.get("ciphertext").getAsString();
+
       Signature rsa = Signature.getInstance("SHA256withRSA");
       rsa.initVerify(authorKey);
       rsa.update(dataToVerify.getBytes());
@@ -306,15 +337,17 @@ public class SecureLibrary {
         System.out.println("Integrity Check: VALID (Signed by " + authorId + ")");
       else
         System.err.println("Integrity Check: INVALID");
+
       return valid;
     } catch (Exception e) {
+      // e.printStackTrace(); // Uncomment for debugging
       return false;
     }
   }
 
   // --- MANUAL COMMANDS (Updated to use Network for Crypto Data) ---
 
-  public static void protect(String inputFile, String outputFile, String userId) throws Exception {
+  public static void protect(String inputFile, String outputFile, String userId, String currentToken) throws Exception {
     // 1. Read Input File
     Gson gson = new GsonBuilder().disableHtmlEscaping().create();
     JsonObject reportData;
@@ -324,7 +357,7 @@ public class SecureLibrary {
 
     // 2. Build Envelope (Uses getNextNonce from Network)
     long nonce = getNextNonce(userId);
-    JsonObject envelope = createProtectedEnvelope(reportData, userId, nonce);
+    JsonObject envelope = createProtectedEnvelope(reportData, userId, nonce, currentToken);
 
     // 3. Save to Output File
     try (FileWriter w = new FileWriter(outputFile)) {

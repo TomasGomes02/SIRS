@@ -10,6 +10,8 @@ import java.io.PrintWriter;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.util.Base64;
+import java.util.List;
+
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
@@ -140,6 +142,14 @@ public class App {
               out.println("ERROR Format");
             break;
 
+          case "GET_USERS":
+            try {
+              out.print(String.join(",", db.getAllUsers()));
+            } catch (Exception e) {
+              out.print("ERROR " + e.getMessage());
+            }
+            break;
+
           case "SUBMIT":
             // SUBMIT <json>
             try {
@@ -177,10 +187,14 @@ public class App {
                   Gson gson = new Gson();
                   JsonObject envelope = gson.fromJson(json, JsonObject.class);
                   JsonObject metadata = envelope.getAsJsonObject("metadata");
-                  String author = metadata != null && metadata.has("author_id")
-                      ? metadata.get("author_id").getAsString()
-                      : null;
-                  if ("municipality".equals(role) || (author != null && author.equals(requester))) {
+                  String author = metadata.get("author_id").getAsString();
+                  String status = metadata.get("status").getAsString();
+
+                  boolean isAuthor = author.equals(requester);
+                  boolean isMunicipality = "municipality".equals(role);
+                  boolean isApproved = "APPROVED".equals(status);
+
+                  if (isMunicipality || isAuthor || isApproved) {
                     out.println(json);
                   } else {
                     out.println("ERROR Access Denied");
@@ -191,6 +205,20 @@ public class App {
               }
             } else
               out.println("ERROR Format");
+            break;
+
+          case "GET_VIEWABLE_REPORTS":
+            // GET_VIEWABLE_REPORTS <user_id>
+            if (parts.length == 2) {
+              try {
+                List<String> ids = db.getViewableReports(parts[1]);
+                out.println(String.join(",", ids));
+              } catch (Exception e) {
+                out.println("ERROR " + e.getMessage());
+              }
+            } else {
+              out.println("ERROR Format");
+            }
             break;
 
           case "UPDATE_STATUS":
@@ -252,7 +280,9 @@ public class App {
       throw new SecurityException("Invalid Signature");
 
     // 4. Verify Token
-    if (!(db.getUserCurrentToken(uid) == token)) {
+    if (!(db.getUserCurrentToken(uid).equals(token))) {
+      System.out.println("DB TOKEN: " + db.getUserCurrentToken(uid));
+      System.out.println("USER TOKEN: " + token);
       throw new SecurityException("Invalid token");
     }
 

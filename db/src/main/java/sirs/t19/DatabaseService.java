@@ -27,13 +27,13 @@ public class DatabaseService {
   public DatabaseService() {
     String dbHost = System.getenv("MONGO_HOST") != null ? System.getenv("MONGO_HOST") : "localhost";
     String uri;
-    
+
     if (dbHost.equals("localhost")) {
-        // Local testing
-        uri = "mongodb://localhost:27017/?tls=true&tlsAllowInvalidHostnames=true";
+      // Local testing
+      uri = "mongodb://localhost:27017/?tls=true&tlsAllowInvalidHostnames=true";
     } else {
-        // Production (VMs)
-        uri = "mongodb://" + dbHost + ":27017/?tls=true&tlsAllowInvalidHostnames=true";
+      // Production (VMs)
+      uri = "mongodb://" + dbHost + ":27017/?tls=true&tlsAllowInvalidHostnames=true";
     }
 
     try {
@@ -100,6 +100,27 @@ public class DatabaseService {
     }
   }
 
+  public List<String> getAllMunicipalities() {
+    List<String> ids = new ArrayList<>();
+    usersCollection.find(Filters.eq("role", "municipality"))
+        .forEach(doc -> ids.add(doc.getObjectId("_id").toString()));
+    return ids;
+  }
+
+  public List<String> getAllCitizens() {
+    List<String> ids = new ArrayList<>();
+    usersCollection.find(Filters.eq("role", "citizen"))
+        .forEach(doc -> ids.add(doc.getObjectId("_id").toString()));
+    return ids;
+  }
+
+  public List<String> getAllUsers() {
+    List<String> ids = new ArrayList<>();
+    usersCollection.find()
+        .forEach(doc -> ids.add(doc.getObjectId("_id").toString()));
+    return ids;
+  }
+
   // --- Token Management ---
 
   public String getUserCurrentToken(String userId) {
@@ -120,10 +141,6 @@ public class DatabaseService {
     }
   }
 
-  /**
-   * Consumes 1 token count and generates a NEW token string. Returns the NEW
-   * token.
-   */
   public String consumeUserToken(String userId) {
     try {
       Document user = usersCollection.find(Filters.eq("_id", new org.bson.types.ObjectId(userId))).first();
@@ -177,15 +194,13 @@ public class DatabaseService {
   public void storeReport(JsonObject envelope, String reportId) {
     Document doc = Document.parse(gson.toJson(envelope));
     doc.append("_id", reportId);
-    Document metadata = (Document) doc.get("metadata");
-    metadata.put("status", "WAITING");
-    doc.put("metadata", metadata);
+    doc.append("status", "WAITING");
     reportsCollection.insertOne(doc);
   }
 
   public List<String> getPendingReports() {
     List<String> ids = new ArrayList<>();
-    reportsCollection.find(Filters.eq("metadata.status", "WAITING"))
+    reportsCollection.find(Filters.eq("status", "WAITING"))
         .forEach(doc -> ids.add(doc.getString("_id")));
     return ids;
   }
@@ -200,6 +215,24 @@ public class DatabaseService {
 
   public void updateReportStatus(String reportId, String status) {
     reportsCollection.updateOne(Filters.eq("_id", reportId),
-        Updates.set("metadata.status", status));
+        Updates.set("status", status));
+  }
+
+  public List<String> getViewableReports(String userId) {
+    List<String> ids = new ArrayList<>();
+    String role = getUserRole(userId);
+
+    if ("municipality".equals(role)) {
+      // Municipalities see everything
+      reportsCollection.find().forEach(doc -> ids.add(doc.getString("_id")));
+    } else {
+      // Citizens see their own reports OR approved reports
+      Bson filter = Filters.or(
+          Filters.eq("metadata.author_id", userId),
+          Filters.eq("status", "APPROVED"));
+
+      reportsCollection.find(filter).forEach(doc -> ids.add(doc.getString("_id")));
+    }
+    return ids;
   }
 }

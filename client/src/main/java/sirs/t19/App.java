@@ -135,6 +135,10 @@ public class App {
                   handleReportFlow(lineReader);
                 break;
 
+              case "get":
+                handleGetReports(lineReader);
+                break;
+
               case "analyze":
                 if (!"municipality".equals(currentRole))
                   System.err.println("Unknown command.");
@@ -147,7 +151,7 @@ public class App {
                 if (argsList.length < 2)
                   System.err.println("Usage: protect <in_file> <out_file>");
                 else
-                  SecureLibrary.protect(argsList[0], argsList[1], currentUserId);
+                  SecureLibrary.protect(argsList[0], argsList[1], currentUserId, currentToken);
                 break;
 
               case "unprotect":
@@ -214,6 +218,60 @@ public class App {
     }
   }
 
+  private static void handleGetReports(LineReader reader) {
+    try {
+      System.out.println("Fetching available reports...");
+      List<String> reports = SecureLibrary.getViewableReports(currentUserId);
+
+      if (reports.isEmpty()) {
+        System.out.println("No reports found.");
+        return;
+      }
+
+      // 1. List all available reports with an index
+      System.out.println("\nAvailable Reports:");
+      for (int i = 0; i < reports.size(); i++) {
+        System.out.println("[" + (i + 1) + "] " + reports.get(i));
+      }
+
+      // 2. Ask user to select one
+      String input = reader.readLine("\nEnter number to view (or 'exit'): ").trim();
+      if (input.equalsIgnoreCase("exit"))
+        return;
+
+      try {
+        int index = Integer.parseInt(input) - 1;
+        if (index >= 0 && index < reports.size()) {
+          String reportId = reports.get(index);
+          System.out.println("\nFetching Report: " + reportId);
+
+          // 3. Fetch and Decrypt the selected report
+          JsonObject data = SecureLibrary.fetchAndDecryptReport(reportId, currentUserId);
+          JsonObject meta = data.has("metadata") ? data.getAsJsonObject("metadata") : null;
+
+          System.out.println("------------------------------------------");
+          System.out.println("ID:          " + reportId);
+          if (meta != null) {
+            System.out.println("Status:      " + (meta.has("status") ? meta.get("status").getAsString() : "N/A"));
+            System.out.println("Author:      " + (meta.has("author_id") ? meta.get("author_id").getAsString() : "N/A"));
+          }
+          System.out.println("Category:    " + (data.has("category") ? data.get("category").getAsString() : "N/A"));
+          System.out.println("Location:    " + (data.has("location") ? data.get("location").getAsString() : "N/A"));
+          System.out
+              .println("Description: " + (data.has("description") ? data.get("description").getAsString() : "N/A"));
+          System.out.println("------------------------------------------");
+        } else {
+          System.err.println("Invalid selection.");
+        }
+      } catch (NumberFormatException e) {
+        System.err.println("Invalid number.");
+      }
+
+    } catch (Exception e) {
+      System.err.println("Error fetching reports: " + e.getMessage());
+    }
+  }
+
   private static void handleAnalyze(LineReader reader) {
     try {
       List<String> reports = SecureLibrary.getPendingReports(currentUserId);
@@ -232,8 +290,9 @@ public class App {
               && !action.equals("SKIP")) {
             action = reader.readLine("Action (APPROVED/DECLINED/SKIP): ").trim().toUpperCase();
           }
-          if (!action.equals("SKIP"))
+          if (!action.equals("SKIP")) {
             SecureLibrary.submitDecision(rid, action, currentUserId);
+          }
 
         } catch (Exception e) {
           System.err.println("Skipping " + rid + ": " + e.getMessage());
