@@ -83,7 +83,7 @@ Boot each VM, log in, and run the following commands to set up the environment.
 **Database VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/7c48a9683fd3ec97d5c34a606fd0ff4a480ed38a/init-database-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/8fab50e25ae60e7c9ed875bfcb8be590e96316e7/init-database-vm.sh | sudo bash
 ```
 
 **App Server VM**
@@ -128,7 +128,7 @@ ping -c 3 google.com   # Should FAIL (No internet)
 
 ```sh
 # Check if MongoDB is running and reachable
-mongosh mongodb://192.168.10.10:27017 --eval 'db.adminCommand("ping")'
+sudo systemctl status mongod
 
 # Verify connection to App Server
 ping -c 3 192.168.10.20
