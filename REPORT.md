@@ -41,6 +41,11 @@
 #### 2.3.1. Challenge Overview
 
 (_Describe the new requirements introduced in the security challenge and how they impacted your original design._)
+Our team was given two options for a security challenge to implement, of which we chose option B. This security challenge consisted in the 
+introduction of a token system for report publication, to prevent users from posting the same report repeatedly, enforced by a separate server.
+This new feature required us to create a separate VM to serve as an Authentication Server, which authenticates the user and issues a predefined
+number of tokens. This meant that the authentication process would no longer be handled by the App Server, but was instead handled by the Auth Server.
+Along with this change, we also made every report consume one token from the user who submitted it, and each token could only be spent once.
 
 #### 2.3.2. Attacker Model
 
@@ -51,6 +56,14 @@
 #### 2.3.3. Solution Design and Implementation
 
 (_Explain how your team redesigned and extended the solution to meet the security challenge, including key distribution and other security measures._)
+In order to implement this solution, our team started by creating a new file, AuthServer.java, to handle the authentication logic, that was once handled by the App Server. 
+In the client side, this functionality remained the same, but instead sending the register and login requests directly to the Auth Server, and the client receives a token
+upon every authentication if it has any tokens remaining. Upon a report submission, the user's current token is wrapped in the protected envelope along with the reportData, 
+userId and nonce, and it's subsequently sent to the App Server. While the client awaits for a response, the App Server processes the report, from which it extracts the token. 
+Then, it retrieves the user's current assigned token from the database and compares it to the token sent by the user in the report. In case they aren't the same, this means
+the user's sent token is no longer valid. Otherwise, it proceeds to verify with the database if the user has any tokens left. If the user has more than 0 tokens, the report
+is stored in the database, and the App Server replies to the client with "OK". If the report submission was successful, the client can then request a new token to the Auth Server,
+which will send a request query to the database which includes consuming the current token and acquiring a new one, which it sends to the user, given that it has any tokens left.
 
 (_Identify communication entities and the messages they exchange with a UML sequence or collaboration diagram._)
 

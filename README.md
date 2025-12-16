@@ -184,7 +184,7 @@ Now that the system is running, you can demonstrate the full flow.
 On the Client VM, run the application:
 
 ```sh
-java -jar /opt/civicecho/app/client-app-1.0-SNAPSHOT.jar
+java -jar /opt/civicecho/client/client-app-1.0-SNAPSHOT.jar
 ```
 
 - **Register:** Creates a new user key pair and registers with the Auth Server.
