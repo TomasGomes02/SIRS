@@ -179,18 +179,30 @@ ping -c 3 192.168.20.10
 
 Now that the system is running, you can demonstrate the full flow.
 
-### 1\. User Registration & Login (Client VM)
+### 3.\ Starting the servers (App & Auth VMs)
+
+On the App & Auth VM, run the application:
+
+```sh
+java -jar /media/sf_target/app-server-1.0-SNAPSHOT.jar
+```
+
+```sh
+java -jar /media/sf_target/auth-server-1.0-SNAPSHOT.jar
+```
+
+### 2\. User Registration & Login (Client VM)
 
 On the Client VM, run the application:
 
 ```sh
-java -jar /opt/civicecho/client/client-app-1.0-SNAPSHOT.jar
+java -jar /media/sf_target/client-app-1.0-SNAPSHOT.jar
 ```
 
 - **Register:** Creates a new user key pair and registers with the Auth Server.
 - **Login:** Authenticates using the Challenge-Response protocol.
 
-### 2\. Submitting a Report
+### 3\. Submitting a Report
 
 ```sh
 # Inside the client CLI
@@ -199,7 +211,7 @@ report
 
 - _Observation:_ The client requests a nonce, signs the report, encrypts it (Hybrid Encryption), and submits it.
 
-### 3\. Security Checks (Attacks)
+### 4\. Security Checks (Attacks)
 
 To demonstrate resilience, simulate the following attacks:
 
