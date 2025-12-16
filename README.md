@@ -51,6 +51,7 @@ Create the following host-only networks in **VirtualBox -\> File -\> Tools -\> N
 | :-------------------- | :---------------- | :----------- |
 | **SW1** (Network \#2) | `192.168.10.0/24` | **Disabled** |
 | **SW2** (Network \#3) | `192.168.20.0/24` | **Enabled**  |
+_(Note: In the DHCP Server in SW2, select the lower address bound as 192.168.20.100 and the upper address bound as 192.168.20.200)._
 
 ### 2\. Virtual Machines Setup
 
