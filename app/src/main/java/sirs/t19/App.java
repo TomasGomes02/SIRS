@@ -188,7 +188,7 @@ public class App {
                   JsonObject envelope = gson.fromJson(json, JsonObject.class);
                   JsonObject metadata = envelope.getAsJsonObject("metadata");
                   String author = metadata.get("author_id").getAsString();
-                  String status = metadata.get("status").getAsString();
+                  String status = envelope.get("status").getAsString();
 
                   boolean isAuthor = author.equals(requester);
                   boolean isMunicipality = "municipality".equals(role);
