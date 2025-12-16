@@ -89,19 +89,19 @@ curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1
 **App Server VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/a80766236f6b768629bf36638ce4e8426c76a63b/init-app-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/9465fef9b01b6f6bd239bb1703e3ad9232c35dec/init-app-vm.sh | sudo bash
 ```
 
 **Auth Server VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/77193f692ba8bb747389772041d4079d0db14e13/init-auth-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/646680701530ad6062242f2b059ba3909412cfee/init-auth-vm.sh | sudo bash
 ```
 
 **Client VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/2f65ba5ac936c361a61a45dd2ad0699a7cdbfb3d/init-client-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/46b93039ff4c47efa29feba0f307f48322b3ae06/init-client-vm.sh | sudo bash
 ```
 
 3.  **Finalize Network Isolation:**
