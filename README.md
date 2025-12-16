@@ -69,9 +69,9 @@ For each machine (Database, App Server, Auth Server, Client), follow these steps
 
 | VM Role         | Username    |Shared Folder Path (Host)                  | Network Adapter 1 (Target) | Network Adapter 2 (Target) |
 | :-------------- | ----------- | :---------------------------------------- | :------------------------- | :------------------------- |
-| **Database**    | database    | `.../T19-CivicEcho/db/src/java/resources` | Host-only **SW1** (\#2)    | _None_                     |
+| **Database**    | database    | `.../T19-CivicEcho/db/src/main/resources` | Host-only **SW1** (\#2)    | _None_                     |
 | **App Server**  | app         | `.../T19-CivicEcho/app/target`            | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
-| **Auth Server** | auth        | `.../T19-CivicEcho/auth-server/target`    | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
+| **Auth Server** | auth        | `.../T19-CivicEcho/auth/target`           | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
 | **Client**      | client      | `.../T19-CivicEcho/client/target`         | _None_                     | Host-only **SW2** (\#3)    |
 
 _(Note: During the "Installation Phase", keep Adapter 1 as NAT. You will switch to the Host-only networks listed above ONLY after running the script)._
