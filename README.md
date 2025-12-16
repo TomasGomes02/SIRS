@@ -69,9 +69,9 @@ For each machine (Database, App Server, Auth Server, Client), follow these steps
 
 | VM Role         | Username    |Shared Folder Path (Host)                  | Network Adapter 1 (Target) | Network Adapter 2 (Target) |
 | :-------------- | ----------- | :---------------------------------------- | :------------------------- | :------------------------- |
-| **Database**    | database    | `.../T19-CivicEcho/db/src/java/resources` | Host-only **SW1** (\#2)    | _None_                     |
+| **Database**    | database    | `.../T19-CivicEcho/db/src/main/resources` | Host-only **SW1** (\#2)    | _None_                     |
 | **App Server**  | app         | `.../T19-CivicEcho/app/target`            | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
-| **Auth Server** | auth        | `.../T19-CivicEcho/auth-server/target`    | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
+| **Auth Server** | auth        | `.../T19-CivicEcho/auth/target`           | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
 | **Client**      | client      | `.../T19-CivicEcho/client/target`         | _None_                     | Host-only **SW2** (\#3)    |
 
 _(Note: During the "Installation Phase", keep Adapter 1 as NAT. You will switch to the Host-only networks listed above ONLY after running the script)._
@@ -83,25 +83,25 @@ Boot each VM, log in, and run the following commands to set up the environment.
 **Database VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/b3bd080fe94855361158b15517134c933adaa38e/init-database-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1bd156e9a4b1/raw/7c48a9683fd3ec97d5c34a606fd0ff4a480ed38a/init-database-vm.sh | sudo bash
 ```
 
 **App Server VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/d448d05efa22226abd99745a3f9ebb3b67f19369/init-app-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/c24199450b3fb97911b17d36bd7eadfaef500e32/init-app-vm.sh | sudo bash
 ```
 
 **Auth Server VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/e392dea9d0bff791416bb074eaf5f29583df6e7c/init-auth-vm.sh | sudo bash
+https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/e17f001dc5c2f19173980c9bbcd8608cc9f8f676/init-auth-vm.sh | sudo bash
 ```
 
 **Client VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/6423b436728c61d3a580cb10ee50454848f36fc1/init-client-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/58f3785ec5ac1f3c55b42b079ed55ff929fcb1cb/init-client-vm.sh | sudo bash
 ```
 
 3.  **Finalize Network Isolation:**
