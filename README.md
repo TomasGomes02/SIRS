@@ -64,7 +64,8 @@ For each machine (Database, App Server, Auth Server, Client), follow these steps
 2.  **Initial Network:** Set Adapter 1 to **NAT** (to allow internet access during setup).
 3.  **Port Forwarding:** To SSH into them during setup, add a rule (Host Port: `2222`-`2225` -\> Guest Port: `22`).
 4.  **Shared Folders:** Go to **Settings -\> Shared Folders** and add the folder corresponding to the VM type.
-    - _Note: Check "Make Machine-permanent"._
+    - _Note: Check "Make Machine-permanent" (If the VM is already running)._
+    - _Note: Check "Auto-mount"_
     - _Note: The "Folder Path" is the location on your host machine._
 
 | VM Role         | Username    |Shared Folder Path (Host)                  | Network Adapter 1 (Target) | Network Adapter 2 (Target) |
@@ -72,7 +73,7 @@ For each machine (Database, App Server, Auth Server, Client), follow these steps
 | **Database**    | database    | `.../T19-CivicEcho/db/src/main/resources` | Host-only **SW1** (\#2)    | _None_                     |
 | **App Server**  | app         | `.../T19-CivicEcho/app/target`            | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
 | **Auth Server** | auth        | `.../T19-CivicEcho/auth/target`           | Host-only **SW1** (\#2)    | Host-only **SW2** (\#3)    |
-| **Client**      | client      | `.../T19-CivicEcho/client/target`         | _None_                     | Host-only **SW2** (\#3)    |
+| **Client**      | client      | `.../T19-CivicEcho/client/target`         | Host-only **SW2** (\#3)    | _None_                     |
 
 _(Note: During the "Installation Phase", keep Adapter 1 as NAT. You will switch to the Host-only networks listed above ONLY after running the script)._
 
@@ -89,19 +90,19 @@ curl -fsSL https://gist.githubusercontent.com/TomasGomes02/c5538fb7a45f8b1fa79c1
 **App Server VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/9465fef9b01b6f6bd239bb1703e3ad9232c35dec/init-app-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/70ef5f6cb7376e6e0aea0be1d36a17b9/raw/418d40a380d3105b560656f52729832fb7ccf045/init-app-vm.sh | sudo bash
 ```
 
 **Auth Server VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/646680701530ad6062242f2b059ba3909412cfee/init-auth-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/beeaaaffec51e330f78cc526f80a21d2/raw/06540d01d3483e1607deba0aba0c5293ceb98aaa/init-auth-vm.sh | sudo bash
 ```
 
 **Client VM**
 
 ```bash
-curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/46b93039ff4c47efa29feba0f307f48322b3ae06/init-client-vm.sh | sudo bash
+curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde6916c0aedc5e/raw/d9f9c23bd662e6ee6dbdc8f6734724d741afc1bc/init-client-vm.sh | sudo bash
 ```
 
 3.  **Finalize Network Isolation:**
@@ -115,6 +116,11 @@ curl -fsSL https://gist.githubusercontent.com/tomasmatos6/55a5a0d0a02b240edbde69
 ### 3\. Verification
 
 After rebooting into the isolated networks, verify connectivity and services.
+
+_Note:_ If connection through ssh is desired, run:
+```sh
+sudo ufw allow ssh
+```
 
 **1. Network Isolation (All VMs)**
 
