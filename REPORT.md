@@ -383,8 +383,13 @@ To accomodate this feature, we created a new Virtual Machine, that was assigned 
 
 ## 4. Bibliography
 
-(_Present bibliographic references, with clickable links. Always include at least the authors, title, "where published", and year._)
-
+- [Cryptographic Functions in Java](https://github.com/tecnico-sec/Java-Crypto-Functions)
+- [Java-Crypto-Details](https://github.com/tecnico-sec/Java-Crypto-Details)
+- [Secure-Documents](https://github.com/tecnico-sec/Secure-Documents)
+- [Virtual-Networking](https://github.com/tecnico-sec/Virtual-Networking)
+- [Traffic-Analysis](https://github.com/tecnico-sec/Traffic-Analysis)
+- [Firewall](https://github.com/tecnico-sec/Firewall)
+- [Secure-Sockets-in-action](https://github.com/tecnico-sec/Secure-Sockets-in-action)
 ---
 
 END OF REPORT
