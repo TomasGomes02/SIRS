@@ -24,6 +24,8 @@ This document presents installation and demonstration instructions.
 
 To see the project in action, it is necessary to setup a virtual environment with **2 isolated networks** and **4 virtual machines**.
 
+![Network Diagram](img/diagrama_sirs_v5.png)
+
 The following diagram shows the networks and machines:
 
 ### 0\. Prerequisites & Build
@@ -172,7 +174,9 @@ ping -c 3 192.168.20.10
 #### **Linux**
 
 ```sh
-
+sudo iptables -A INPUT -i tun+ -j ACCEPT
+sudo iptables -A OUTPUT -o tun+ -j ACCEPT
+VBoxManage setextradata global natdnshostresolver1 on
 ```
 
 ## Demonstration
@@ -245,6 +249,19 @@ Try to ping the database directly as an attacker (client machine) from inside an
 
 ```sh
 ping -c 3 192.168.10.10
+```
+
+**Port Scan (NMAP)**
+Port scan both machines using the nmap tool to see what ports are open:
+
+```sh
+# Port scan on the auth VM
+nmap 192.168.20.10
+```
+
+```sh
+# Port scan on the app VM
+nmap 192.168.20.20
 ```
 
 ## Additional Information
