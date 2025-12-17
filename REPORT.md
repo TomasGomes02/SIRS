@@ -34,6 +34,10 @@ The secure document format for **CivicEcho** was designed to ensure confidential
 
 **Digital Signatures (Integrity & Non-Repudiation):** To prevent tampering and ensure non-repudiation, the author signs the encrypted payload and the immutable metadata (author ID, nonce, token) using their private RSA key (`SHA256withRSA`). This guarantees that neither the server nor a municipality can alter the content of a citizen's report without breaking the signature.
 
+<p align="center">
+  <img src="img/client.png" alt="Client">
+</p>
+
 **Data Format Example:**
 
 ```
@@ -56,6 +60,11 @@ The secure document format for **CivicEcho** was designed to ensure confidential
   }
 }
 ```
+
+<p align="center">
+  <img src="img/municipalities.png" alt="m">
+</p>
+
 
 #### 2.1.2. Implementation
 
@@ -183,7 +192,7 @@ cat app.key app.crt > app.pem
 
 ```
 
-**Result**
+**Result**:
 Every connection is TLS 1.3 + mTLS.
 The attacker captures only ephemeral-encrypted bytes, no private keys travel the wire, and the CA that could sign a fake cert is kept in another network that is unreachable.
 Without a valid certificate and its private key, the handshake fails immediately so intercepted packets stay undecryptable.
@@ -219,7 +228,17 @@ The untrusted machines are all that aren't authenticated to the app, but have so
 
 (_Define how powerful the attacker is, with capabilities and limitations, i.e., what can he do and what he cannot do_)
 
-Getting deeper into defining the attackers. They have a very limited range of operations that they can actually perform. Port scans are possible using nmap and it will retrieve the open ports for the App Server and the Auth Server, which are 8443 and 8444 respectively. \
+Getting deeper into defining the attackers. They have a very limited range of operations that they can actually perform. Port scans are possible using nmap and it will retrieve the open ports for the App Server and the Auth Server, which are 8443 and 8444 respectively. 
+
+<p align="center">
+  <img src="img/nmap_app.png" alt="app">  
+</p>
+
+
+<p align="center">
+  <img src="img/nmap_auth.png" alt="auth">
+</p>
+
 However, sending any traffic to these servers will yield no results. Let's take a look at a concrete example, where an attacker tries to send a report to the App Server. When a client submits a report, it's userId is added to the metadata. The metadata is then added to the envelope, and the envelope along with the metadata are signed with the user's private key. This way, the signed data can only be unencrypted with the user's public key, which the server can confirm belongs to an authenticated user and and that the userId added in the metadata is valid, thus providing Authenticity. The process is shown briefly in the code below:
 
 ```java
@@ -274,9 +293,17 @@ private static void processReport(String json) throws Exception {
 }
 ```
 
-The attacker also has other limitations. In spite of being able to intercept traffic, the attacker can not actually analyze it in any relevant way, due to the communications between all parties being secure via TLS.
+The attacker also has other limitations. In spite of being able to intercept traffic, the attacker can not actually analyze it in any relevant way, due to the communications between all parties being secure via TLS (See image below).
 
-Any replay attempts by an attacker, i.e intercepting a packet and resending it to the server, will not succeed. Our implementation keeps a nonce for every user, and the server will verify if the nonce sent in the report is greater than the one in the database. If not, this indicates a replay attack, and the report is rejected, providing Integrity to our application.
+<p align="center">
+  <img src="img/wireshark.png" alt="wireshark">
+</p>
+
+Any replay attempts by an attacker, i.e intercepting a packet and resending it to the server, will not succeed. Our implementation keeps a nonce for every user, and the server will verify if the nonce sent in the report is greater than the one in the database. If not, this indicates a replay attack, and the report is rejected, providing Integrity to our application (See image below).
+
+<p align="center">
+  <img src="img/replay_attack.png" alt="Replay">
+</p>
 
 This security challenge also brought limitations to the client. Although not considered an attacker, a user could still disturb the server/database by submitting the same report an unlimited amount of times, effectively spamming the server. Our token system, which will be described in the next section, prevents the user from spamming reports by giving it a limited amount of tokens and consuming one token for each report submission.
 
