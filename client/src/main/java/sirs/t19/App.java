@@ -211,8 +211,7 @@ public class App {
       r.saveToLocalFile("reports/" + r.getReportId() + ".json");
 
       // 4. Protect & Submit
-      SecureLibrary.protectAndSubmit(reportJson, currentUserId, currentToken);
-
+      currentToken = SecureLibrary.protectAndSubmit(reportJson, currentUserId, currentToken);
     } catch (Exception e) {
       System.err.println("Report Failed: " + e.getMessage());
     }
