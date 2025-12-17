@@ -281,8 +281,6 @@ public class App {
 
     // 4. Verify Token
     if (!(db.getUserCurrentToken(uid).equals(token))) {
-      System.out.println("DB TOKEN: " + db.getUserCurrentToken(uid));
-      System.out.println("USER TOKEN: " + token);
       throw new SecurityException("Invalid token");
     }
 

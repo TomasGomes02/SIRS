@@ -54,7 +54,7 @@ public class App {
       LineReader lineReader = LineReaderBuilder.builder().terminal(terminal).completer(dynamicCompleter).build();
 
       System.out.println("--------------------------------------------------");
-      System.out.println("      CivicEcho Client Terminal (v15.0)           ");
+      System.out.println("      CivicEcho Client Terminal (v6.7)           ");
       System.out.println("--------------------------------------------------");
 
       while (true) {
