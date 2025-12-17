@@ -16,11 +16,75 @@
 
 (_Include a complete example of your data format, with the designed protections._)
 
+The secure document format for **CivicEcho** was designed to ensure confidentiality, integrity, authentication and non-repudiation.
+
+**Rationale and Design Choices:**
+
+- **Hybrid Encryption (Confidentiality):** We utilized a hybrid encryption scheme to balance performance and flexibility.
+
+- **Symmetric Layer:** The report payload (JSON data containing description, location, etc.) is encrypted using AES (Advanced Encryption Standard) with a randomly generated session key. This ensures efficient encryption of potentially large data.
+
+- **Asymmetric Layer:** The session key is encrypted (wrapped) using **RSA** for each intented recipient. This allows us to target specific users (the author, municipalities, and other citizens) without duplicating the encrypted payload.
+
+**Encrypt for All, Reveal by Policy" Strategy:** A key design decision was to encrypt the document for all system users (citizens and municipalities) at the moment of creation.
+
+- The file is encrypted on creation and the secret key used is encrypted for each user with their own public key, this way the users can decrypt it later using their private key, we use server side logic at the application level to ensure only authorized users can access the reports.
+
+- This secret key sharing method doesn't scale well but since our application is not expected to have more than 3-4 users at a time we kept it for simplicity. Another method we considered later was to use the database as a centralized key management system, where the client would send the secret securely through TLS to the database, this way only the reference to that key would need to be sent with the report.
+
+**Digital Signatures (Integrity & Non-Repudiation):** To prevent tampering and ensure non-repudiation, the author signs the encrypted payload and the immutable metadata (author ID, nonce, token) using their private RSA key (`SHA256withRSA`). This guarantees that neither the server nor a municipality can alter the content of a citizen's report without breaking the signature.
+
+**Data Format Example:**
+
+```
+{
+  "_id": "String",
+  "status": "APPROVED | DECLINED",
+  "envelope": {
+    "metadata": {
+      "author_id": "String",
+      "nonce": int,
+      "token": "String"
+    },
+    "recipients": {
+      "user_id": "Public Key",
+      "user_id": "Public Key"
+      // ... entries for all other users
+    },
+    "ciphertext": "AES Encrypted JSON Payload",
+    "signature": "RSA Signature"
+  }
+}
+```
+
 #### 2.1.2. Implementation
 
 (_Detail the implementation process, including the programming language and cryptographic libraries used._)
 
 (_Include challenges faced and how they were overcome._)
+
+**Technology Stack:** The secure library was implemented in **Java**, using the standard `javax.crypto` and `java.security` packages for cryptographic primitives, and **Gson** for JSON serialization/deserialization.
+
+- **Key Management:** RSA keys (2048-bit) are generated for every user upon registration. Public keys are stored locally and in the MongoDB instance, while private keys are kept only locally.
+
+- Encryption Flow:
+  1\. Generate AES Session Key (`KeyGenerator`).
+
+2\. Fetch public keys for all users via `GET_ALL_USERS`.
+
+3\. Wrap Session Key (`Cipher.WRAP_MODE`) for each user.
+
+4\. Sign the concatenation of metadata + recipients + ciphertext.
+
+5\. Construct the JSON object.
+
+**Challenges and Solutions:**
+
+1\. **Mutable Metadata Breaking Integrity:**
+
+- _Challenge_: Initially, the `status` field was included inside the signed metadata. When a municipality updated the status from `WAITING` to `APPROVED`, the client's integrity check failed because the hash of the data no longer matched the original signature.
+
+- _Solution_: We refactored the data model to move `status` to the root level of document. This decoupled the server's authority (approving reports) from the user's authority (signing content), ensuring signatures remain valid throughout the report lifecycle.
 
 ### 2.2. Infrastructure
 
@@ -42,7 +106,7 @@
 
 (_Describe the new requirements introduced in the security challenge and how they impacted your original design._)
 
-Our team was given two options for a security challenge to implement, of which we chose option B. This security challenge consisted in the 
+Our team was given two options for a security challenge to implement, of which we chose option B. This security challenge consisted in the
 introduction of a token system for report publication, to prevent users from posting the same report repeatedly, enforced by a separate server.
 This new feature required us to create a separate VM to serve as an Authentication Server, which authenticates the user and issues a predefined number of tokens. This meant that the authentication process would no longer be handled by the App Server, but was instead handled by the Auth Server.
 Along with this change, we also needed every report consume one token from the user who submitted it.
@@ -52,9 +116,10 @@ Along with this change, we also needed every report consume one token from the u
 (_Define who is fully trusted, partially trusted, or untrusted._)
 
 There are three categories we can define for the trust level of a machine:
- - fully trusted
- - partially trusted
- - untrusted
+
+- fully trusted
+- partially trusted
+- untrusted
 
 Starting with the fully trusted, these include all of the machines that can directly manipulate the Database. These belong to the 192.168.10.0/24 network, specifically the Database, the Auth Server and the App Server. \
 As for the partially trusted, this category refers to machines that can't directly change the database, but can do some authorized process that will alter it through the Servers. These can be authenticated clients, i.e clients that registered an account, are currently logged in, and have a valid certificate. It also encompasses all of the municipalities, given the same requirements described before for the clients. They reside in the 192.168.20.0/24 network. \
@@ -123,7 +188,6 @@ Any replay attempts by an attacker, i.e intercepting a packet and resending it t
 
 This security challenge also brought limitations to the client. Although not considered an attacker, a user could still disturb the server/database by submitting the same report an unlimited amount of times, effectively spamming the server. Our token system, which will be described in the next section, prevents the user from spamming reports by giving it a limited amount of tokens and consuming one token for each report submission.
 
-
 #### 2.3.3. Solution Design and Implementation
 
 (_Explain how your team redesigned and extended the solution to meet the security challenge, including key distribution and other security measures._)
@@ -149,10 +213,10 @@ In the context of this project, we assessed that five tokens is sufficient for t
 ```
 # Users database schema
 Users: {
-    userId: { 
+    userId: {
         "name": "value",
         "password": "value",
-        "pubkey": "value", 
+        "pubkey": "value",
         "role": "citizen" | "municipality",
         "nonce": "counter"
         "n_tokens": "counter"    # number of tokens left
@@ -161,7 +225,7 @@ Users: {
 }
 ```
 
-In the client side, this functionality remained the same, but instead sending the register and login requests directly to the Auth Server, and the client receives a token upon every authentication if it has any tokens remaining. Upon a report submission, the user's current token is wrapped in the protected envelope along with the reportData,  userId and nonce, and it's subsequently sent to the App Server. \
+In the client side, this functionality remained the same, but instead sending the register and login requests directly to the Auth Server, and the client receives a token upon every authentication if it has any tokens remaining. Upon a report submission, the user's current token is wrapped in the protected envelope along with the reportData, userId and nonce, and it's subsequently sent to the App Server. \
 While the client awaits a response, the App Server processes the report, from which it extracts the token. Then, it retrieves the user's current assigned token from the database and compares it to the token sent by the user in the report. In case they aren't the same, this means the user's sent token is no longer valid. Otherwise, it proceeds to verify with the database if the user has any tokens left. If the user has more than 0 tokens, the report is stored in the database, and the App Server replies to the client with "OK".
 
 ```java
@@ -173,22 +237,20 @@ private static void processReport(String json) throws Exception {
         System.out.println("USER TOKEN: " + token);
         throw new SecurityException("Invalid token");
         }
-    
+
     if (db.getUserTokenAmount(uid) <= 0) {
       throw new SecurityException("No more tokens");
     }
 }
 ```
 
- If the report submission was successful, the client can then request a new token to the Auth Server, which will send a request query to the database, which includes consuming the current token and acquiring a new one, which it sends to the client, given that it has any tokens left.
+If the report submission was successful, the client can then request a new token to the Auth Server, which will send a request query to the database, which includes consuming the current token and acquiring a new one, which it sends to the client, given that it has any tokens left.
 
- To accomodate this feature, we created a new Virtual Machine, that was assigned the IPv4 address 192.168.20.10 on the interface connecting to Switch 2 and 192.168.10.11 on the interface connecting to Switch 3. The clients can connect directly to the Auth Server, as well as the App Server like before, via Switch 2. The complete network redesign can be seen below:
+To accomodate this feature, we created a new Virtual Machine, that was assigned the IPv4 address 192.168.20.10 on the interface connecting to Switch 2 and 192.168.10.11 on the interface connecting to Switch 3. The clients can connect directly to the Auth Server, as well as the App Server like before, via Switch 2. The complete network redesign can be seen below:
 
 (_Identify communication entities and the messages they exchange with a UML sequence or collaboration diagram._)
 
- ![Network Diagram](img/diagrama_sirs_v5.png)
-
-
+![Network Diagram](img/diagrama_sirs_v5.png)
 
 ## 3. Conclusion
 

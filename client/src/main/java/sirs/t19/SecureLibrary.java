@@ -84,7 +84,6 @@ public class SecureLibrary {
     System.out.println("Client: Submitting to App Server...");
     String cmd = "SUBMIT " + new Gson().toJson(root);
     String response = sendAppCommand(cmd);
-    response = sendAppCommand(cmd);
 
     if (!response.startsWith("OK"))
       throw new Exception("Submission failed: " + response);
