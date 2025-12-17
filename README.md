@@ -184,7 +184,7 @@ VBoxManage setextradata global natdnshostresolver1 on
 
 Now that the system is running, you can demonstrate the full flow.
 
-### 3.\ Starting the servers (App & Auth VMs)
+### 1.\ Starting the servers (App & Auth VMs)
 
 On the App & Auth VM, run the application:
 
@@ -260,10 +260,13 @@ Port scan both machines using the nmap tool to see what ports are open:
 nmap 192.168.20.10
 ```
 
+![192.168.20.10 Nmap port scan](img/nmap_auth.png)
+
 ```sh
 # Port scan on the app VM
 nmap 192.168.20.20
 ```
+![192.168.20.20 Nmap port scan](img/nmap_app.png)
 
 ## Additional Information
 
