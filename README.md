@@ -202,16 +202,28 @@ java -jar /media/sf_target/client-app-1.0-SNAPSHOT.jar
 - **Register:** Creates a new user key pair and registers with the Auth Server.
 - **Login:** Authenticates using the Challenge-Response protocol.
 
-### 3\. Submitting a Report
+### 3\. Submitting a Report (Client)
 
 ```sh
 # Inside the client CLI
 report
 ```
 
+### 4\. Analyzing a Report (Municipality)
+```sh
+# Inside the client CLI
+analyze
+```
+
+### 5\. Viewing the Approved Reports (Client)
+```sh
+# Inside the client CLI
+get
+```
+
 - _Observation:_ The client requests a nonce, signs the report, encrypts it (Hybrid Encryption), and submits it.
 
-### 4\. Security Checks (Attacks)
+### 6\. Security Checks (Attacks)
 
 To demonstrate resilience, simulate the following attacks:
 
