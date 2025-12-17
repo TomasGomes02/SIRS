@@ -1,4 +1,4 @@
-# CXX DeathNode / ChainOfProduct / CivicEcho Project Report
+# T19 CivicEcho Project Report
 
 ## 1. Introduction
 
@@ -90,11 +90,103 @@ The secure document format for **CivicEcho** was designed to ensure confidential
 
 #### 2.2.1. Network and Machine Setup
 
+We built a three-tier (Trusted, Partialy-trusted and Untrusted), two-switch topology that keeps fully-trusted database/services in an isolated management segment while exposing only HTTPS application ports to the client/municipality segment.
+
+**Logical view (CIDR and traffic rules)**:
+
+- SW1 (mgmt) – 192.168.10.0/24 – NO DHCP: Static addresses only.
+    - Members: MongoDB (10.10), App-Server (10.20), Auth-Server (10.11). A host-only network in VirtualBox; no route to the outside so a compromise on SW2 cannot reach the DB directly;
+- SW2 (user) – 192.168.20.0/24 – DHCP 20.100-20.200: Client/municipality VMs attach here.
+    - Only ports 8443 (App) and 8444 (Auth) are reachable both speak mutual-TLS so un-certificated hosts cannot complete a handshake;
+- NAT adapter (on each VM) exists only during provisioning and is disabled before the security demonstration, guaranteeing that all later traffic must traverse the two switches.
+
+**Physical mapping (VirtualBox)**:
+
+| VM Role          | Adapter 1 (provisioning) | Adapter 1 (runtime)  | Adapter 2 (runtime)
+| :--------------------: | :----------------: | :-----------: | :-----------: |
+| Database | NAT | SW1 static 10.10 | - |
+| App server | NAT | SW1 static 10.20  | SW2 static 20.20 |
+| Auth server | NAT | SW1 static 10.11  | SW2 static 20.10 |
+| Client | NAT | SW2 DHCP 20.x  | - |
+
+**Routing & isolation**:
+
+- No default gateway on any VM as inter-tier traffic must flow through the dual-homed application servers, turning them into policy enforcement points.
+- Each server also enforces a default-deny firewall that rejects any packet not explicitly whitelisted (see Table below), shrinking the reachable surface to the exact TLS ports required.
+- A one-line test (ping 192.168.10.10) proves the DB is unreachable from the User segment once the demo begins.
+
+| Server | Allowed inbound                                    |
+| ------ | -------------------------------------------------- |
+| App    | TCP 8443 from 192.168.20.0/24 + 192.168.10.10 (DB) |
+| Auth   | TCP 8444 from 192.168.20.0/24 + 192.168.10.10 (DB) |
+| DB     | TCP 27017 from 192.168.10.20 & 192.168.10.11 only  |
+
+
+**Operating-system choice**
+We selected Ubuntu Server 22.04 LTS as the common guest OS because:
+
+- Fast and light operating system.
+- Minimal installation image keeps attack surface small (no GUI, no extraneous services).
+- Native packages for MongoDB 7.0, OpenJDK 21 and Wireshark simplify automated provisioning.
+
+**Database technology**
+MongoDB was chosen because:
+
+- Schema-less documents map naturally to the JSON envelopes produced by our Java code.
+- Native TLS support (X.509 member authentication) lets us reuse the same PKI certificates already generated for the application layer.
+- No need for relational database schema.
+
+**Implementation language**
+Java was used for three practical reasons:
+
+- All SIRS laboratory exercises were delivered in Java, giving the team a common baseline.
+- javax.crypto and java.security provide complete and bullet-proof implementations of AES-CBC, RSA and hashing, shortening the crypto-development cycle.
+- Maven offers reproducible builds and transitive-dependency management, essential when the same artifact must run on four different VMs without manual JAR hunting.
+
 (_Provide a brief description of the built infrastructure._)
 
 (_Justify the choice of technologies for each server._)
 
 #### 2.2.2. Server Communication Security
+
+**Goal**:
+App, Auth and Mongo communicate over the LAN with mutual TLS 1.3. 
+Both sides prove their identity via certificates, preventing read, modify or impersonate attacks.
+
+**Keys at start-up**
+- **Root CA** (self-signed), kept on the Database VM.
+- **One key-pair per server** – auth and app servers have their key-pair file (.p12) stored on the respective VM.
+- **Single trust-store** – contains only the Root CA and every service copy/pastes it once.
+
+**How they are made**:
+```sh
+# 1. make CA
+openssl req -x509 -newkey rsa:2048 -nodes -keyout db-ca.key -out db-ca.crt -days 3650
+
+# 2. config with IP list 
+cat > san.cnf <<EOF
+[alt_names]
+IP.1 = 192.168.10.10   # App
+IP.2 = 192.168.10.20   # Auth
+IP.3 = 192.168.10.11   # Mongo
+EOF
+
+# 3. sign each server (example: App)
+openssl req -newkey rsa:2048 -nodes -keyout app.key -out app.csr -subj "/CN=App"
+openssl x509 -req -in app.csr -CA db-ca.crt -CAkey db-ca.key -out app.crt -days 365 -extfile san.cnf
+
+# 4. bundle for Spring (password protected)
+openssl pkcs12 -export -in app.crt -inkey app.key -out app.p12 -passout pass:apppass
+
+# 5. Mongo bundle (plain PEM)
+cat app.key app.crt > app.pem
+
+```
+
+**Result**
+Every connection is TLS 1.3 + mTLS.
+The attacker captures only ephemeral-encrypted bytes, no private keys travel the wire, and the CA that could sign a fake cert is kept in another network that is unreachable.
+Without a valid certificate and its private key, the handshake fails immediately so intercepted packets stay undecryptable.
 
 (_Discuss how server communications were secured, including the secure channel solutions implemented and any challenges encountered._)
 
