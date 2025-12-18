@@ -4,7 +4,31 @@
 
 (_Provide a brief overview of your project, including the business scenario and the main components: secure documents, infrastructure, and security challenge._)
 
+CivicEcho is a public participation platform that lets citizens report local issues pseudo-anonymously while enabling municipalities to verify authenticity and avoid spam / disinformation. Reports are JSON documents (example below) that must be shareable between citizens but protected from eavesdropping and tampering.
+
+```json
+{
+  "report_id": "echo_00218",
+  "timestamp": "2025-10-05T14:30:00Z",
+  "category": "infrastructure",
+  "location": "Lisbon, Portugal",
+  "coordinates": {"latitude": 38.72052, "longitude": -9.14583},
+  "description": "Broken traffic light on Avenida da Liberdade"
+}
+```
+
+The system must address the functional security requirements:
+
+- SR1 (Confidentiality): reports cannot be traced back to their author.
+- SR2 (Integrity): municipalities must be able to verify that reports were not altered.
+- SR3 (Authentication): only verified citizens may submit reports.
+- SR4 (Non-repudiation): authorities must be able to verify that a valid report was received.
+
 (_Include a structural diagram, in UML or other standard notation._)
+
+Here is a diagram of our system's design:
+![Network Diagram](img/diagrama_sirs_v5.png)
+
 
 ## 2. Project Development
 
@@ -24,22 +48,27 @@ The secure document format for **CivicEcho** was designed to ensure confidential
 
 - **Symmetric Layer:** The report payload (JSON data containing description, location, etc.) is encrypted using AES (Advanced Encryption Standard) with a randomly generated session key. This ensures efficient encryption of potentially large data.
 
-- **Asymmetric Layer:** The session key is encrypted (wrapped) using **RSA** for each intented recipient. This allows us to target specific users (the author, municipalities, and other citizens) without duplicating the encrypted payload.
+- **Asymmetric Layer:** The session key is encrypted (wrapped) using **RSA** for each intended recipient. This allows us to target specific users (the author, municipalities, and other citizens) without duplicating the encrypted payload.
 
-**Encrypt for All, Reveal by Policy" Strategy:** A key design decision was to encrypt the document for all system users (citizens and municipalities) at the moment of creation.
+**"Encrypt for All, Reveal by Policy" Strategy:** A key design decision was to encrypt the document for all system users (citizens and municipalities) at the moment of creation.
 
-- The file is encrypted on creation and the secret key used is encrypted for each user with their own public key, this way the users can decrypt it later using their private key, we use server side logic at the application level to ensure only authorized users can access the reports.
+- The file is encrypted on creation and the secret key used is encrypted for each user with their own public key, this way the users can decrypt it later using their private key. We use server side logic at the application level to ensure only authorized users can access the reports.
 
 - This secret key sharing method doesn't scale well but since our application is not expected to have more than 3-4 users at a time we kept it for simplicity. Another method we considered later was to use the database as a centralized key management system, where the client would send the secret securely through TLS to the database, this way only the reference to that key would need to be sent with the report.
 
 **Digital Signatures (Integrity & Non-Repudiation):** To prevent tampering and ensure non-repudiation, the author signs the encrypted payload and the immutable metadata (author ID, nonce, token) using their private RSA key (`SHA256withRSA`). This guarantees that neither the server nor a municipality can alter the content of a citizen's report without breaking the signature.
 
+The figures below are ilustrations of our designed protections and an example of the data format we adopted.
+
 <p align="center">
   <img src="img/client.png" alt="Client">
 </p>
 
-**Data Format Example:**
+<p align="center">
+  <img src="img/municipalities.png" alt="m">
+</p>
 
+**Data Format Example:**
 ```
 {
   "_id": "String",
@@ -61,9 +90,6 @@ The secure document format for **CivicEcho** was designed to ensure confidential
 }
 ```
 
-<p align="center">
-  <img src="img/municipalities.png" alt="m">
-</p>
 
 #### 2.1.2. Implementation
 
@@ -75,16 +101,71 @@ The secure document format for **CivicEcho** was designed to ensure confidential
 
 - **Key Management:** RSA keys (2048-bit) are generated for every user upon registration. Public keys are stored locally and in the MongoDB instance, while private keys are kept only locally.
 
-- Encryption Flow:
+- Encryption Flow: \
   1\. Generate AES Session Key (`KeyGenerator`).
 
-2\. Fetch public keys for all users via `GET_ALL_USERS`.
+  2\. Fetch public keys for all users via `GET_ALL_USERS`.
 
-3\. Wrap Session Key (`Cipher.WRAP_MODE`) for each user.
+  3\. Wrap Session Key (`Cipher.WRAP_MODE`) for each user.
 
-4\. Sign the concatenation of metadata + recipients + ciphertext.
+  4\. Sign the concatenation of metadata + recipients + ciphertext.
 
-5\. Construct the JSON object.
+  5\. Construct the JSON object.
+
+  The process is as shown in the code below:
+
+```java
+// Client
+private static JsonObject createProtectedEnvelope(JsonObject reportData, String userId,
+    long nonce, String currentToken) throws Exception {
+  JsonObject metadata = new JsonObject();
+  metadata.addProperty("author_id", userId);
+  metadata.addProperty("nonce", nonce);
+  metadata.addProperty("token", currentToken);
+
+  // 1. Generate AES Session Key (KeyGenerator).
+  SecretKey sessionKey = CryptoUtils.generateAESKey();
+  byte[] encryptedBytes = CryptoUtils.encrypt(sessionKey, new Gson().toJson(reportData).getBytes());
+
+  JsonObject recipients = new JsonObject();
+
+  List<String> allUsers = getUserIds();
+
+  for (String targetId : allUsers) {
+    // 2. Fetch public keys for all users via GET_ALL_USERS.
+    PublicKey k = getPublicKeyFromServer(targetId);
+    if (k != null) {
+      // 3. Wrap Session Key (Cipher.WRAP_MODE) for each user.
+      recipients.addProperty(targetId,
+          Base64.getEncoder().encodeToString(CryptoUtils.wrapKey(k, sessionKey)));
+    }
+  }
+
+  JsonObject envelope = new JsonObject();
+  envelope.add("metadata", metadata);
+  envelope.add("recipients", recipients);
+  envelope.addProperty("ciphertext", Base64.getEncoder().encodeToString(encryptedBytes));
+
+  // 4. Sign the concatenation of metadata + recipients + ciphertext
+  String dataToSign = metadata.toString() + recipients.toString() + envelope.get("ciphertext").getAsString();
+  Signature rsa = Signature.getInstance("SHA256withRSA");
+  rsa.initSign(loadLocalPrivateKey(userId));
+  rsa.update(dataToSign.getBytes());
+  envelope.addProperty("signature", Base64.getEncoder().encodeToString(rsa.sign()));
+
+  return envelope;
+}
+
+public static String protectAndSubmit(JsonObject reportData, String userId, String currentToken) throws Exception {
+  ...
+  JsonObject envelope = createProtectedEnvelope(reportData, userId, nonce, currentToken);
+
+  // 5. Construct the JSON object
+  JsonObject root = new JsonObject();
+  root.add(reportData.get("report_id").getAsString(), envelope);
+  ...
+}
+```
 
 **Challenges and Solutions:**
 
@@ -103,19 +184,19 @@ We built a three-tier (Trusted, Partialy-trusted and Untrusted), two-switch topo
 **Logical view (CIDR and traffic rules)**:
 
 - SW1 (mgmt) – 192.168.10.0/24 – NO DHCP: Static addresses only.
-  - Members: MongoDB (10.10), App-Server (10.20), Auth-Server (10.11). A host-only network in VirtualBox; no route to the outside so a compromise on SW2 cannot reach the DB directly;
+    - Members: MongoDB (10.10), App-Server (10.20), Auth-Server (10.11). A host-only network in VirtualBox; no route to the outside so a compromise on SW2 cannot reach the DB directly;
 - SW2 (user) – 192.168.20.0/24 – DHCP 20.100-20.200: Client/municipality VMs attach here.
-  - Only ports 8443 (App) and 8444 (Auth) are reachable both speak mutual-TLS so un-certificated hosts cannot complete a handshake;
+    - Only ports 8443 (App) and 8444 (Auth) are reachable. Both speak mutual-TLS so un-certificated hosts cannot complete a handshake;
 - NAT adapter (on each VM) exists only during provisioning and is disabled before the security demonstration, guaranteeing that all later traffic must traverse the two switches.
 
 **Physical mapping (VirtualBox)**:
 
-|   VM Role   | Adapter 1 (provisioning) | Adapter 1 (runtime) | Adapter 2 (runtime) |
-| :---------: | :----------------------: | :-----------------: | :-----------------: |
-|  Database   |           NAT            |  SW1 static 10.10   |          -          |
-| App server  |           NAT            |  SW1 static 10.20   |  SW2 static 20.20   |
-| Auth server |           NAT            |  SW1 static 10.11   |  SW2 static 20.10   |
-|   Client    |           NAT            |    SW2 DHCP 20.x    |          -          |
+| VM Role          | Adapter 1 (provisioning) | Adapter 1 (runtime)  | Adapter 2 (runtime)
+| :--------------------: | :----------------: | :-----------: | :-----------: |
+| Database | NAT | SW1 static 10.10 | - |
+| App server | NAT | SW1 static 10.20  | SW2 static 20.20 |
+| Auth server | NAT | SW1 static 10.11  | SW2 static 20.10 |
+| Client | NAT | SW2 DHCP 20.x  | - |
 
 **Routing & isolation**:
 
@@ -129,21 +210,22 @@ We built a three-tier (Trusted, Partialy-trusted and Untrusted), two-switch topo
 | Auth   | TCP 8444 from 192.168.20.0/24 + 192.168.10.10 (DB) |
 | DB     | TCP 27017 from 192.168.10.20 & 192.168.10.11 only  |
 
-**Operating-system choice**
+
+**Operating-system choice** \
 We selected Ubuntu Server 22.04 LTS as the common guest OS because:
 
 - Fast and light operating system.
 - Minimal installation image keeps attack surface small (no GUI, no extraneous services).
 - Native packages for MongoDB 7.0, OpenJDK 21 and Wireshark simplify automated provisioning.
 
-**Database technology**
+**Database technology** \
 MongoDB was chosen because:
 
 - Schema-less documents map naturally to the JSON envelopes produced by our Java code.
 - Native TLS support (X.509 member authentication) lets us reuse the same PKI certificates already generated for the application layer.
 - No need for relational database schema.
 
-**Implementation language**
+**Implementation language** \
 Java was used for three practical reasons:
 
 - All SIRS laboratory exercises were delivered in Java, giving the team a common baseline.
@@ -302,22 +384,23 @@ There are three categories we can define for the trust level of a machine:
 - untrusted
 
 Starting with the fully trusted, these include all of the machines that can directly manipulate the Database. These belong to the 192.168.10.0/24 network, specifically the Database, the Auth Server and the App Server. \
-As for the partially trusted, this category refers to machines that can't directly change the database, but can do some authorized process that will alter it through the Servers. These can be authenticated clients, i.e clients that registered an account, are currently logged in, and have a valid certificate. It also encompasses all of the municipalities, given the same requirements described before for the clients. They reside in the 192.168.20.0/24 network. \
+As for the partially trusted, this category refers to machines that can't directly change the database, but can do some authorized process that will alter it through the Servers. These can be authenticated clients, i.e. clients that registered an account, are currently logged in, and have a valid certificate. It also encompasses all of the municipalities, given the same requirements described before for the clients. They reside in the 192.168.20.0/24 network. \
 The untrusted machines are all that aren't authenticated to the app, but have some low-level unauthorized access to the Servers, and thus can be considered attackers.
 
 (_Define how powerful the attacker is, with capabilities and limitations, i.e., what can he do and what he cannot do_)
 
-Getting deeper into defining the attackers. They have a very limited range of operations that they can actually perform. Port scans are possible using nmap and it will retrieve the open ports for the App Server and the Auth Server, which are 8443 and 8444 respectively.
+Getting deeper into defining the attackers. They have a very limited range of operations that they can actually perform. Port scans are possible using nmap and it will retrieve the open ports for the App Server and the Auth Server, which are 8443 and 8444 respectively. 
 
 <p align="center">
   <img src="img/nmap_app.png" alt="app">  
 </p>
 
+
 <p align="center">
   <img src="img/nmap_auth.png" alt="auth">
 </p>
 
-However, sending any traffic to these servers will yield no results. Let's take a look at a concrete example, where an attacker tries to send a report to the App Server. When a client submits a report, it's userId is added to the metadata. The metadata is then added to the envelope, and the envelope along with the metadata are signed with the user's private key. This way, the signed data can only be unencrypted with the user's public key, which the server can confirm belongs to an authenticated user and and that the userId added in the metadata is valid, thus providing Authenticity. The process is shown briefly in the code below:
+However, sending any traffic to these servers will yield no results. Let's take a look at a concrete example, where an attacker tries to send a report to the App Server. When a client submits a report, its userId is added to the metadata. The metadata is then added to the envelope, and the envelope along with the metadata are signed with the user's private key. This way, the signed data can only be unencrypted with the user's public key, which the server can confirm belongs to an authenticated user and and that the userId added in the metadata is valid, thus providing Authenticity. The process is shown briefly in the code below:
 
 ```java
 // Client
@@ -341,7 +424,7 @@ private static JsonObject createProtectedEnvelope(JsonObject reportData, String 
   }
 ```
 
-However, in the case of an attacker, it does not have a valid userId, which will lead to the server rejecting the submission either because it can't retrieve the user's public key from the database, since it doesn't exist, or because the signature provided is invalid.
+In the case of an attacker, it does not have a valid userId, which will lead to the server rejecting the submission either because it can't retrieve the user's public key from the database, since it doesn't exist, or because the signature provided is invalid.
 
 ```java
 // App Server
@@ -371,13 +454,13 @@ private static void processReport(String json) throws Exception {
 }
 ```
 
-The attacker also has other limitations. In spite of being able to intercept traffic, the attacker can not actually analyze it in any relevant way, due to the communications between all parties being secure via TLS (See image below).
+The attacker also has other limitations. In spite of being able to intercept traffic, the attacker cannot actually analyze it in any relevant way, due to the communications between all parties being secure via TLS (See image below).
 
 <p align="center">
   <img src="img/wireshark.png" alt="wireshark">
 </p>
 
-Any replay attempts by an attacker, i.e intercepting a packet and resending it to the server, will not succeed. Our implementation keeps a nonce for every user, and the server will verify if the nonce sent in the report is greater than the one in the database. If not, this indicates a replay attack, and the report is rejected, providing Integrity to our application (See image below).
+Any replay attempts by an attacker, i.e. intercepting a packet and resending it to the server, will not succeed. Our implementation keeps a nonce for every user, and the server will verify if the nonce sent in the report is greater than the one in the database. If not, this indicates a replay attack, and the report is rejected, providing Integrity to our application (See image below).
 
 <p align="center">
   <img src="img/replay_attack.png" alt="Replay">
@@ -405,7 +488,7 @@ case "REGISTER":
     break;
 ```
 
-In the context of this project, we assessed that five tokens is sufficient for the purpose of this challenge, although this can be easily changed to any desired amount. A token is unique, meaning it can only be spent once. Each report submission consumes one token. The number of tokens a user has is tracked by an entry in the database associated to the userId:
+In the context of this project, we assessed that five tokens is sufficient for our purpose, although this can be easily changed to any desired amount. A token is unique, meaning it can only be spent once. Each report submission consumes one token. The number of tokens a user has is tracked by an entry in the database associated to the userId:
 
 ```
 # Users database schema
@@ -441,23 +524,38 @@ private static void processReport(String json) throws Exception {
 }
 ```
 
-If the report submission was successful, the client can then request a new token to the Auth Server, which will send a request query to the database, which includes consuming the current token and acquiring a new one, which it sends to the client, given that it has any tokens left.
+If the report submission was successful, the client can then request a new token to the Auth Server, which will send a request query to the database, which includes consuming the current token and acquiring a new one token that it sends to the client, given that it has any tokens left.
 
-To accomodate this feature, we created a new Virtual Machine, that was assigned the IPv4 address 192.168.20.10 on the interface connecting to Switch 2 and 192.168.10.11 on the interface connecting to Switch 3. The clients can connect directly to the Auth Server, as well as the App Server like before, via Switch 2. The complete network redesign can be seen below:
+To accomodate this feature, we created a new Virtual Machine, that was assigned the IPv4 address 192.168.20.10 on the interface connecting to Switch 2 and 192.168.10.11 on the interface connecting to Switch 3. The clients can connect directly to the Auth Server, as well as the App Server like before, via Switch 2. The communication entities and the messages they exchange can be seen below:
 
 (_Identify communication entities and the messages they exchange with a UML sequence or collaboration diagram._)
 
-![Network Diagram](img/diagrama_sirs_v5.png)
+<p align="center">
+  <img src="img/comms.png" alt="Client">
+</p>
+
 
 ## 3. Conclusion
 
-(_State the main achievements of your work._)
+(_State the main achievements of your work._) \
+We accomplished a pseudo-anonymous application that allows users to submit reports on local issues and municipalities to verify authenticity and prevent spam/disinformation, while providing all four specified protection needs (Confidentiality, Integrity, Authentication and Non-Repudiation). It also prevents spam through the use of tokens and effectively maintains network resilience.
 
 (_Describe which requirements were satisfied, partially satisfied, or not satisfied; with a brief justification for each one._)
+Our team's program successfully managed to completely satisfy all the requirements:
+- [SR1: Confidentiality] Reports cannot be traced back to the author due to the use of pseudonymous userIds and encrypted report data, ensuring that neither the mediator nor unauthorized parties can access or link report data to a real-world person.
+- [SR2: Integrity] Municipalities can verify reports were not altered because each report is digitally signed by the submitting user, allowing any modification to the data to be detected during signature verification.
+- [SR3: Authentication] Only verified citizens can submit reports because users must register and authenticate with the system, binding their identity to a cryptographic key pair and valid digital certificates before any report can be accepted.
+- [SR4: Non-Repudiation] Authorities are able to verify the validity of received reports by checking the digital signature and metadata, which provides proof that a specific authenticated user submitted the report at a given time.
 
-(_Identify possible enhancements in the future._)
+Other from these, spamming reports is also no longer possible after we implemented the Security Challenge B and permitting users to submit a limited number of reports.
+The complete functioning of non-security related features (report submission, report sharing, etc.) of the CivicEcho system as described in the Introduction section were fully secured as well.
+ 
+(_Identify possible enhancements in the future._) \
+A few points of improvement have been identified during the development of this application:
+- Currently, we give users a fixed amount of tokens that never get replenished. We considered renewing the token count every day or every week instead of having only N tokens to use in the account's lifetime.
 
-(_Offer a concluding statement, emphasizing the value of the project experience._)
+(_Offer a concluding statement, emphasizing the value of the project experience._) \
+This project helped our team not only understand valuable cybersecurity concepts, but also be able to apply them in a realistic scenario like CivicEcho. The lack of base code and the flexible requirements allowed us to be creative in our solution and design an application from the start with all the needs in mind. Overall, this was a positive experience that prepared us better for our future in this area.
 
 ## 4. Bibliography
 
@@ -468,7 +566,6 @@ To accomodate this feature, we created a new Virtual Machine, that was assigned 
 - [Traffic-Analysis](https://github.com/tecnico-sec/Traffic-Analysis)
 - [Firewall](https://github.com/tecnico-sec/Firewall)
 - [Secure-Sockets-in-action](https://github.com/tecnico-sec/Secure-Sockets-in-action)
-
 ---
 
 END OF REPORT
