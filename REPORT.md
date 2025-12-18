@@ -65,7 +65,6 @@ The secure document format for **CivicEcho** was designed to ensure confidential
   <img src="img/municipalities.png" alt="m">
 </p>
 
-
 #### 2.1.2. Implementation
 
 (_Detail the implementation process, including the programming language and cryptographic libraries used._)
@@ -104,19 +103,19 @@ We built a three-tier (Trusted, Partialy-trusted and Untrusted), two-switch topo
 **Logical view (CIDR and traffic rules)**:
 
 - SW1 (mgmt) – 192.168.10.0/24 – NO DHCP: Static addresses only.
-    - Members: MongoDB (10.10), App-Server (10.20), Auth-Server (10.11). A host-only network in VirtualBox; no route to the outside so a compromise on SW2 cannot reach the DB directly;
+  - Members: MongoDB (10.10), App-Server (10.20), Auth-Server (10.11). A host-only network in VirtualBox; no route to the outside so a compromise on SW2 cannot reach the DB directly;
 - SW2 (user) – 192.168.20.0/24 – DHCP 20.100-20.200: Client/municipality VMs attach here.
-    - Only ports 8443 (App) and 8444 (Auth) are reachable both speak mutual-TLS so un-certificated hosts cannot complete a handshake;
+  - Only ports 8443 (App) and 8444 (Auth) are reachable both speak mutual-TLS so un-certificated hosts cannot complete a handshake;
 - NAT adapter (on each VM) exists only during provisioning and is disabled before the security demonstration, guaranteeing that all later traffic must traverse the two switches.
 
 **Physical mapping (VirtualBox)**:
 
-| VM Role          | Adapter 1 (provisioning) | Adapter 1 (runtime)  | Adapter 2 (runtime)
-| :--------------------: | :----------------: | :-----------: | :-----------: |
-| Database | NAT | SW1 static 10.10 | - |
-| App server | NAT | SW1 static 10.20  | SW2 static 20.20 |
-| Auth server | NAT | SW1 static 10.11  | SW2 static 20.10 |
-| Client | NAT | SW2 DHCP 20.x  | - |
+|   VM Role   | Adapter 1 (provisioning) | Adapter 1 (runtime) | Adapter 2 (runtime) |
+| :---------: | :----------------------: | :-----------------: | :-----------------: |
+|  Database   |           NAT            |  SW1 static 10.10   |          -          |
+| App server  |           NAT            |  SW1 static 10.20   |  SW2 static 20.20   |
+| Auth server |           NAT            |  SW1 static 10.11   |  SW2 static 20.10   |
+|   Client    |           NAT            |    SW2 DHCP 20.x    |          -          |
 
 **Routing & isolation**:
 
@@ -129,7 +128,6 @@ We built a three-tier (Trusted, Partialy-trusted and Untrusted), two-switch topo
 | App    | TCP 8443 from 192.168.20.0/24 + 192.168.10.10 (DB) |
 | Auth   | TCP 8444 from 192.168.20.0/24 + 192.168.10.10 (DB) |
 | DB     | TCP 27017 from 192.168.10.20 & 192.168.10.11 only  |
-
 
 **Operating-system choice**
 We selected Ubuntu Server 22.04 LTS as the common guest OS because:
@@ -158,44 +156,125 @@ Java was used for three practical reasons:
 
 #### 2.2.2. Server Communication Security
 
-**Goal**:
-App, Auth and Mongo communicate over the LAN with mutual TLS 1.3. 
-Both sides prove their identity via certificates, preventing read, modify or impersonate attacks.
+**Goal**
+The system employs a layered security model to protect data in transit, ensuring confidentiality and integrity across two distinct communication boundaries: the internal infrastructure and external client access. All channels utilize **TLS 1.3** to guarantee forward secrecy and strong encryption suites.
 
-**Keys at start-up**
-- **Root CA** (self-signed), kept on the Database VM.
-- **One key-pair per server** – auth and app servers have their key-pair file (.p12) stored on the respective VM.
-- **Single trust-store** – contains only the Root CA and every service copy/pastes it once.
+#### A. Internal Infrastructure (Mutual TLS)
 
-**How they are made**:
-```sh
-# 1. make CA
-openssl req -x509 -newkey rsa:2048 -nodes -keyout db-ca.key -out db-ca.crt -days 3650
+**Scope:** `App Server <-> Database` and `Auth Server <-> Database`.
 
-# 2. config with IP list 
+**Mechanism:**
+Communication within the server backend is secured using **Mutual TLS (mTLS)**. In this setup, both the client (App/Auth Server) and the service (Database) must present a valid X.509 certificate to prove their identity before a connection is established.
+
+- **Access Control:** The Database does not rely solely on passwords. It rejects any connection attempt at the socket layer if the connecting peer cannot present a certificate signed by our internal **Root CA**.
+- **Spoofing Prevention:** Servers cannot impersonate one another because their IP addresses are embedded in the `Subject Alternative Name (SAN)` field of their certificates.
+
+#### B. Client-Server Access (One-Way TLS)
+
+**Scope:** `Client <-> App Server` and `Client <-> Auth Server`.
+
+**Mechanism:**
+Communication between the Client (Citizen/Municipality) and the Servers uses **One-Way TLS** (Server Authentication).
+
+1. **Server Identity (The Handshake):** When a client connects, the Server presents its certificate (e.g., `app-server.crt`). The client verifies this certificate against its local `server_truststore.jks`, which contains the system's Root CA. This guarantees the client is talking to the legitimate CivicEcho server and not a malicious proxy (Man-in-the-Middle).
+2. **Client Identity (Application Layer):** Since distributing unique X.509 certificates to every citizen is impractical, the client does _not_ use mTLS. Instead, the secure TLS tunnel is established first. Inside this encrypted tunnel, the client proves their identity using the application-level **Login Protocol** (sending `username` and `password` to receive a session token).
+
+**Key Infrastructure & Distribution**
+At system start-up, a private Public Key Infrastructure (PKI) is established. The keys and certificates are distributed as follows:
+
+- **Trust Anchor (Root CA):** A self-signed Certificate Authority (`db-ca.crt`) acts as the root of trust. This file is embedded into a Java TrustStore (`server_truststore.jks`) and distributed to all Java services (App, Auth, Client). It is also configured as the CA file in the MongoDB settings.
+- **Server Identities (Private Keys):** Each service possesses a unique private key and a corresponding certificate signed by the Root CA.
+- **Java Services (App/Auth):** Stored in PKCS#12 format (`.p12`), containing the key chain.
+- **MongoDB:** Stored in PEM format (`db-ca.pem`), concatenating the key and certificate.
+
+- **Distribution:** Certificates are generated on a secure host using a strictly configured OpenSSL script. The resulting artifacts are securely provisioned to the `resources/` folder of each service before the Virtual Machines are launched.
+
+**Implementation Process**
+The certificate generation process was scripted to ensure reproducibility and compliance with strict security standards (RFC 5280).
+
+1. **Configuration (san.cnf):** We defined a custom OpenSSL configuration to enforce Subject Alternative Names (SANs) and critical Key Usage extensions.
+2. **Signing Request (CSR):** Each server generated a unique key and a Certificate Signing Request (CSR).
+3. **Issuance:** The Root CA signed these requests, embedding the specific IP addresses of the VMs into the certificate extensions.
+
+**Key Generation Commands (Summary):**
+
+```bash
+# 1. Create OpenSSL Config (Crucial for Strict Validation)
 cat > san.cnf <<EOF
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+prompt = no
+[req_distinguished_name]
+C = PT
+O = CivicEcho
+CN = CivicEcho-Root-CA
+[v3_req]
+# Critical flags for CA validity in BoringSSL/Chrome
+keyUsage = digitalSignature, keyEncipherment, keyCertSign, cRLSign
+extendedKeyUsage = serverAuth, clientAuth
+subjectAltName = @alt_names
 [alt_names]
-IP.1 = 192.168.10.10   # App
-IP.2 = 192.168.10.20   # Auth
-IP.3 = 192.168.10.11   # Mongo
+IP.1 = 192.168.10.10
+IP.2 = 192.168.10.20
+IP.3 = 192.168.10.11
+IP.4 = 192.168.20.20
+IP.5 = 192.168.20.10
+DNS.1 = localhost
 EOF
 
-# 3. sign each server (example: App)
-openssl req -newkey rsa:2048 -nodes -keyout app.key -out app.csr -subj "/CN=App"
-openssl x509 -req -in app.csr -CA db-ca.crt -CAkey db-ca.key -out app.crt -days 365 -extfile san.cnf
+# 2. Generate Root CA (db.crt)
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout db-ca.key -out db-ca.crt -config san.cnf
 
-# 4. bundle for Spring (password protected)
-openssl pkcs12 -export -in app.crt -inkey app.key -out app.p12 -passout pass:apppass
+# 3. Create MongoDB Bundle (PEM)
+cat db-ca.crt db-ca.key > db-ca.pem
 
-# 5. Mongo bundle (plain PEM)
-cat app.key app.crt > app.pem
+# 4. App Server: Generate & Sign
+openssl req -new -nodes -newkey rsa:2048 \
+  -keyout app-server.key -out app-server.csr \
+  -subj "/C=PT/O=CivicEcho/CN=App-Server" -config san.cnf
+
+openssl x509 -req -in app-server.csr \
+  -CA db-ca.crt -CAkey db-ca.key -CAcreateserial \
+  -out app-server.crt -days 365 \
+  -extensions v3_req -extfile san.cnf
+
+# 5. App Server: Package as PKCS12
+openssl pkcs12 -export -in app-server.crt -inkey app-server.key \
+  -out app-server.p12 -name app-server \
+  -CAfile db-ca.crt -caname root-ca -passout pass:appserverpass
+
+# 6. Auth Server: Generate & Sign
+openssl req -new -nodes -newkey rsa:2048 \
+  -keyout auth-server.key -out auth-server.csr \
+  -subj "/C=PT/O=CivicEcho/CN=Auth-Server" -config san.cnf
+
+openssl x509 -req -in auth-server.csr \
+  -CA db-ca.crt -CAkey db-ca.key -CAcreateserial \
+  -out auth-server.crt -days 365 \
+  -extensions v3_req -extfile san.cnf
+
+# 7. Auth Server: Package as PKCS12
+openssl pkcs12 -export -in auth-server.crt -inkey auth-server.key \
+  -out auth-server.p12 -name auth-server \
+  -CAfile db-ca.crt -caname root-ca -passout pass:authserverpass
+
+# 8. Truststore: Import Root CA
+keytool -import -alias civic-echo-ca -file db-ca.crt \
+  -keystore server_truststore.jks -storepass changeit -noprompt
 
 ```
 
-**Result**:
-Every connection is TLS 1.3 + mTLS.
-The attacker captures only ephemeral-encrypted bytes, no private keys travel the wire, and the CA that could sign a fake cert is kept in another network that is unreachable.
-Without a valid certificate and its private key, the handshake fails immediately so intercepted packets stay undecryptable.
+**Challenges & Solutions**
+
+**Strict Certificate Validation (BoringSSL/Electron):**
+
+- _Challenge:_ While Java clients connected successfully using standard certificates, external administration tools (specifically MongoDB Compass) rejected the connection with `KEY_USAGE_BIT_INCORRECT`. This occurred because the default OpenSSL CA generation does not set the `keyCertSign` flag, which strict SSL libraries require for a certificate to act as a Certificate Authority.
+- _Solution:_ We updated the `san.cnf` configuration to explicitly include `keyUsage = keyCertSign`. This ensured the Root CA was mathematically valid for signing other certificates, resolving the compatibility issues.
+
+**Security Result**
+The system achieves **end-to-end encryption** with Forward Secrecy (via TLS 1.3 ephemeral keys). An attacker capturing network packets sees only encrypted noise. Furthermore, because we enforce **mutual authentication**, an attacker cannot simply connect to the database to guess passwords, nor can they spoof the database IP, as they lack the private key signed by the Root CA.
 
 (_Discuss how server communications were secured, including the secure channel solutions implemented and any challenges encountered._)
 
@@ -228,12 +307,11 @@ The untrusted machines are all that aren't authenticated to the app, but have so
 
 (_Define how powerful the attacker is, with capabilities and limitations, i.e., what can he do and what he cannot do_)
 
-Getting deeper into defining the attackers. They have a very limited range of operations that they can actually perform. Port scans are possible using nmap and it will retrieve the open ports for the App Server and the Auth Server, which are 8443 and 8444 respectively. 
+Getting deeper into defining the attackers. They have a very limited range of operations that they can actually perform. Port scans are possible using nmap and it will retrieve the open ports for the App Server and the Auth Server, which are 8443 and 8444 respectively.
 
 <p align="center">
   <img src="img/nmap_app.png" alt="app">  
 </p>
-
 
 <p align="center">
   <img src="img/nmap_auth.png" alt="auth">
@@ -390,6 +468,7 @@ To accomodate this feature, we created a new Virtual Machine, that was assigned 
 - [Traffic-Analysis](https://github.com/tecnico-sec/Traffic-Analysis)
 - [Firewall](https://github.com/tecnico-sec/Firewall)
 - [Secure-Sockets-in-action](https://github.com/tecnico-sec/Secure-Sockets-in-action)
+
 ---
 
 END OF REPORT
