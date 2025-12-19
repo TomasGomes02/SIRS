@@ -8,7 +8,11 @@
 | 112307 | Tomás Gomes     | [https://github.com/TomasGomes02](https://github.com/TomasGomes02)     | [tomasldgomes2002@tecnico.ulisboa.pt](mailto:tomasldgomes2002@tecnico.ulisboa.pt) |
 | 117340 | Tomás Matos     | [https://github.com/tomasmatos6](https://github.com/tomasmatos6)       | [tomasmbmatos@tecnico.ulisboa.pt](mailto:tomasmbmatos@tecnico.ulisboa.pt)         |
 
-![Alice](img/alice.png) ![Bob](img/bob.png) ![Charlie](img/charlie.png)
+<p align="center">
+  <img src="img/alice.png" height="150" alt="Alice">
+  <img src="img/112307.png" height="150" alt="Bob">
+  <img src="img/charlie.png" height="150" alt="Charlie">
+</p>
 
 _(add face photos with 150px height; faces should have similar size and framing)_
 
