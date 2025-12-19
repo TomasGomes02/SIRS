@@ -9,9 +9,9 @@
 | 117340 | Tomás Matos     | [https://github.com/tomasmatos6](https://github.com/tomasmatos6)       | [tomasmbmatos@tecnico.ulisboa.pt](mailto:tomasmbmatos@tecnico.ulisboa.pt)         |
 
 <p align="center">
-  <img src="img/alice.png" height="150" alt="Alice">
+  <img src="img/t2.png" height="150" alt="Alice">
   <img src="img/112307.png" height="150" alt="Bob">
-  <img src="img/charlie.png" height="150" alt="Charlie">
+  <img src="img/m.jpeg" height="150" alt="Charlie">
 </p>
 
 _(add face photos with 150px height; faces should have similar size and framing)_
