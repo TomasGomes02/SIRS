@@ -2,8 +2,6 @@
 
 ## 1. Introduction
 
-(_Provide a brief overview of your project, including the business scenario and the main components: secure documents, infrastructure, and security challenge._)
-
 CivicEcho is a public participation platform that lets citizens report local issues pseudo-anonymously while enabling municipalities to verify authenticity and avoid spam / disinformation. Reports are JSON documents (example below) that must be shareable between citizens but protected from eavesdropping and tampering.
 
 ```json
@@ -24,8 +22,6 @@ The system must address the functional security requirements:
 - SR3 (Authentication): only verified citizens may submit reports.
 - SR4 (Non-repudiation): authorities must be able to verify that a valid report was received.
 
-(_Include a structural diagram, in UML or other standard notation._)
-
 Here is a diagram of our system's design:
 ![Network Diagram](img/diagrama_sirs_v5.png)
 
@@ -35,10 +31,6 @@ Here is a diagram of our system's design:
 ### 2.1. Secure Document Format
 
 #### 2.1.1. Design
-
-(_Outline the design of your custom cryptographic library and the rationale behind your design choices, focusing on how it addresses the specific needs of your chosen business scenario._)
-
-(_Include a complete example of your data format, with the designed protections._)
 
 The secure document format for **CivicEcho** was designed to ensure confidentiality, integrity, authentication and non-repudiation.
 
@@ -92,10 +84,6 @@ The figures below are ilustrations of our designed protections and an example of
 
 
 #### 2.1.2. Implementation
-
-(_Detail the implementation process, including the programming language and cryptographic libraries used._)
-
-(_Include challenges faced and how they were overcome._)
 
 **Technology Stack:** The secure library was implemented in **Java**, using the standard `javax.crypto` and `java.security` packages for cryptographic primitives, and **Gson** for JSON serialization/deserialization.
 
@@ -232,10 +220,6 @@ Java was used for three practical reasons:
 - javax.crypto and java.security provide complete and bullet-proof implementations of AES-CBC, RSA and hashing, shortening the crypto-development cycle.
 - Maven offers reproducible builds and transitive-dependency management, essential when the same artifact must run on four different VMs without manual JAR hunting.
 
-(_Provide a brief description of the built infrastructure._)
-
-(_Justify the choice of technologies for each server._)
-
 #### 2.2.2. Server Communication Security
 
 **Goal**
@@ -345,7 +329,6 @@ openssl pkcs12 -export -in auth-server.crt -inkey auth-server.key \
 # 8. Truststore: Import Root CA
 keytool -import -alias civic-echo-ca -file db-ca.crt \
   -keystore server_truststore.jks -storepass changeit -noprompt
-
 ```
 
 **Challenges & Solutions**
@@ -358,15 +341,9 @@ keytool -import -alias civic-echo-ca -file db-ca.crt \
 **Security Result**
 The system achieves **end-to-end encryption** with Forward Secrecy (via TLS 1.3 ephemeral keys). An attacker capturing network packets sees only encrypted noise. Furthermore, because we enforce **mutual authentication**, an attacker cannot simply connect to the database to guess passwords, nor can they spoof the database IP, as they lack the private key signed by the Root CA.
 
-(_Discuss how server communications were secured, including the secure channel solutions implemented and any challenges encountered._)
-
-(_Explain what keys exist at the start and how are they distributed?_)
-
 ### 2.3. Security Challenge
 
 #### 2.3.1. Challenge Overview
-
-(_Describe the new requirements introduced in the security challenge and how they impacted your original design._)
 
 Our team was given two options for a security challenge to implement, of which we chose option B. This security challenge consisted in the
 introduction of a token system for report publication, to prevent users from posting the same report repeatedly, enforced by a separate server.
@@ -374,8 +351,6 @@ This new feature required us to create a separate VM to serve as an Authenticati
 Along with this change, we also needed every report consume one token from the user who submitted it.
 
 #### 2.3.2. Attacker Model
-
-(_Define who is fully trusted, partially trusted, or untrusted._)
 
 There are three categories we can define for the trust level of a machine:
 
@@ -386,8 +361,6 @@ There are three categories we can define for the trust level of a machine:
 Starting with the fully trusted, these include all of the machines that can directly manipulate the Database. These belong to the 192.168.10.0/24 network, specifically the Database, the Auth Server and the App Server. \
 As for the partially trusted, this category refers to machines that can't directly change the database, but can do some authorized process that will alter it through the Servers. These can be authenticated clients, i.e. clients that registered an account, are currently logged in, and have a valid certificate. It also encompasses all of the municipalities, given the same requirements described before for the clients. They reside in the 192.168.20.0/24 network. \
 The untrusted machines are all that aren't authenticated to the app, but have some low-level unauthorized access to the Servers, and thus can be considered attackers.
-
-(_Define how powerful the attacker is, with capabilities and limitations, i.e., what can he do and what he cannot do_)
 
 Getting deeper into defining the attackers. They have a very limited range of operations that they can actually perform. Port scans are possible using nmap and it will retrieve the open ports for the App Server and the Auth Server, which are 8443 and 8444 respectively. 
 
@@ -470,8 +443,6 @@ This security challenge also brought limitations to the client. Although not con
 
 #### 2.3.3. Solution Design and Implementation
 
-(_Explain how your team redesigned and extended the solution to meet the security challenge, including key distribution and other security measures._)
-
 In order to implement this solution, our team started by creating a new file, <em>AuthServer.java</em>, to handle the authentication logic that was once handled by the App Server. Now, upon registration, the user is given five tokens, of which one will be sent to him by the Auth Server:
 
 ```java
@@ -528,8 +499,6 @@ If the report submission was successful, the client can then request a new token
 
 To accomodate this feature, we created a new Virtual Machine, that was assigned the IPv4 address 192.168.20.10 on the interface connecting to Switch 2 and 192.168.10.11 on the interface connecting to Switch 3. The clients can connect directly to the Auth Server, as well as the App Server like before, via Switch 2. The communication entities and the messages they exchange can be seen below:
 
-(_Identify communication entities and the messages they exchange with a UML sequence or collaboration diagram._)
-
 <p align="center">
   <img src="img/comms.png" alt="Client">
 </p>
@@ -537,10 +506,8 @@ To accomodate this feature, we created a new Virtual Machine, that was assigned 
 
 ## 3. Conclusion
 
-(_State the main achievements of your work._) \
 We accomplished a pseudo-anonymous application that allows users to submit reports on local issues and municipalities to verify authenticity and prevent spam/disinformation, while providing all four specified protection needs (Confidentiality, Integrity, Authentication and Non-Repudiation). It also prevents spam through the use of tokens and effectively maintains network resilience.
 
-(_Describe which requirements were satisfied, partially satisfied, or not satisfied; with a brief justification for each one._)
 Our team's program successfully managed to completely satisfy all the requirements:
 - [SR1: Confidentiality] Reports cannot be traced back to the author due to the use of pseudonymous userIds and encrypted report data, ensuring that neither the mediator nor unauthorized parties can access or link report data to a real-world person.
 - [SR2: Integrity] Municipalities can verify reports were not altered because each report is digitally signed by the submitting user, allowing any modification to the data to be detected during signature verification.
@@ -550,11 +517,10 @@ Our team's program successfully managed to completely satisfy all the requiremen
 Other from these, spamming reports is also no longer possible after we implemented the Security Challenge B and permitting users to submit a limited number of reports.
 The complete functioning of non-security related features (report submission, report sharing, etc.) of the CivicEcho system as described in the Introduction section were fully secured as well.
  
-(_Identify possible enhancements in the future._) \
 A few points of improvement have been identified during the development of this application:
 - Currently, we give users a fixed amount of tokens that never get replenished. We considered renewing the token count every day or every week instead of having only N tokens to use in the account's lifetime.
+- We would also like to include the government's authentication API to provide a more reliable and trusted method for verifying citizen identities.
 
-(_Offer a concluding statement, emphasizing the value of the project experience._) \
 This project helped our team not only understand valuable cybersecurity concepts, but also be able to apply them in a realistic scenario like CivicEcho. The lack of base code and the flexible requirements allowed us to be creative in our solution and design an application from the start with all the needs in mind. Overall, this was a positive experience that prepared us better for our future in this area.
 
 ## 4. Bibliography
@@ -569,104 +535,3 @@ This project helped our team not only understand valuable cybersecurity concepts
 ---
 
 END OF REPORT
-
-### Generating the certificates
-
-# 1. Create Config for the SERVERS (Mongo, App, Auth)
-
-# These are the machines that need the IP addresses/SANs.
-
-cat > server_san.cnf <<EOF
-[req]
-distinguished_name = req_distinguished_name
-req_extensions = v3_req
-prompt = no
-[req_distinguished_name]
-C = PT
-O = CivicEcho
-CN = Generic-Server
-[v3_req]
-keyUsage = keyEncipherment, dataEncipherment
-extendedKeyUsage = serverAuth, clientAuth
-subjectAltName = @alt_names
-[alt_names]
-IP.1 = 192.168.10.10
-IP.2 = 192.168.10.20
-IP.3 = 192.168.10.11
-IP.4 = 192.168.20.20
-IP.5 = 192.168.20.10
-DNS.1 = localhost
-EOF
-
-# 2. Create the Root CA (Self-Signed)
-
-# CA does NOT need the IPs. It just needs to be a valid Authority.
-
-openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
- -keyout db-ca.key -out db-ca.crt \
- -subj "/C=PT/O=CivicEcho/CN=CivicEcho-Root-CA"
-
-# 3. Create PEM bundle for Mongo (Key + Cert)
-
-cat db-ca.crt db-ca.key > db-ca.pem
-
-# 4. Generate & Sign App-Server Cert
-
-openssl req -new -nodes -newkey rsa:2048 \
- -keyout app-server.key -out app-server.csr \
- -subj "/C=PT/O=CivicEcho/CN=App-Server" \
- -config server_san.cnf
-
-openssl x509 -req -in app-server.csr \
- -CA db-ca.crt -CAkey db-ca.key -CAcreateserial \
- -out app-server.crt -days 365 \
- -extensions v3_req -extfile server_san.cnf
-
-openssl pkcs12 -export -in app-server.crt -inkey app-server.key \
- -out app-server.p12 -name app-server \
- -CAfile db-ca.crt -caname root-ca \
- -passout pass:appserverpass
-
-# 5. Generate & Sign Auth-Server Cert
-
-openssl req -new -nodes -newkey rsa:2048 \
- -keyout auth-server.key -out auth-server.csr \
- -subj "/C=PT/O=CivicEcho/CN=Auth-Server" \
- -config server_san.cnf
-
-openssl x509 -req -in auth-server.csr \
- -CA db-ca.crt -CAkey db-ca.key -CAcreateserial \
- -out auth-server.crt -days 365 \
- -extensions v3_req -extfile server_san.cnf
-
-openssl pkcs12 -export -in auth-server.crt -inkey auth-server.key \
- -out auth-server.p12 -name auth-server \
- -CAfile db-ca.crt -caname root-ca \
- -passout pass:authserverpass
-
-# 6. Generate Key & CSR for MongoDB
-
-openssl req -new -nodes -newkey rsa:2048 \
- -keyout mongodb-server.key -out mongodb-server.csr \
- -subj "/C=PT/O=CivicEcho/CN=sirs-database1" \
- -config server_san.cnf
-
-# 7. Sign it with your CA
-
-openssl x509 -req -in mongodb-server.csr \
- -CA db-ca.crt -CAkey db-ca.key -CAcreateserial \
- -out mongodb-server.crt -days 365 \
- -extensions v3_req -extfile server_san.cnf
-
-# 8. Create the PEM bundle (Key + Cert) for MongoDB
-
-cat mongodb-server.key mongodb-server.crt > mongodb-server.pem
-
-# 9. Create Java Truststore
-
-# (Delete old one first to avoid duplicates)
-
-rm -f server_truststore.jks
-keytool -import -alias db-ca -file db-ca.crt \
- -keystore server_truststore.jks \
- -storepass changeit -noprompt
