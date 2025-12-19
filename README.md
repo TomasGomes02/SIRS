@@ -208,10 +208,12 @@ On the Client VM, run the application:
 java -jar /media/sf_target/client-app-1.0-SNAPSHOT.jar
 ```
 
-- **Register:** Creates a new user key pair and registers with the Auth Server.
+- **Register:** Creates a new user key pair and registers with the Auth Server. The role for the user can be either citizen or municipality.
 - **Login:** Authenticates using the Challenge-Response protocol.
 
-### 3\. Submitting a Report (Client)
+_Note_: Create all of the desired users before proceeding with any other operation.
+
+### 3\. Submitting a Report (Citizen)
 
 ```sh
 # Inside the client CLI
@@ -224,7 +226,7 @@ report
 analyze
 ```
 
-### 5\. Viewing the Approved Reports (Client)
+### 5\. Viewing the User's Reports and all Approved Reports (Citizen)
 ```sh
 # Inside the client CLI
 get
