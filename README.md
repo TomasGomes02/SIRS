@@ -8,14 +8,6 @@
 | 112307 | Tomás Gomes     | [https://github.com/TomasGomes02](https://github.com/TomasGomes02)     | [tomasldgomes2002@tecnico.ulisboa.pt](mailto:tomasldgomes2002@tecnico.ulisboa.pt) |
 | 117340 | Tomás Matos     | [https://github.com/tomasmatos6](https://github.com/tomasmatos6)       | [tomasmbmatos@tecnico.ulisboa.pt](mailto:tomasmbmatos@tecnico.ulisboa.pt)         |
 
-<p align="center">
-  <img src="img/t2.png" height="150" alt="Alice">
-  <img src="img/112307.png" height="150" alt="Bob">
-  <img src="img/m.jpeg" height="150" alt="Charlie">
-</p>
-
-_(add face photos with 150px height; faces should have similar size and framing)_
-
 ## Contents
 
 This repository contains documentation and source code for the _Network and Computer Security (SIRS)_ project.
