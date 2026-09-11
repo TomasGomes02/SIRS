@@ -1,6 +1,10 @@
 # Network and Computer Security
 
-## CivicEcho - Team 19
+## CivicEcho 
+
+CivicEcho is a public participation platform that lets citizens report local issues pseudo-anonymously while enabling municipalities to verify authenticity and avoid spam / disinformation. Reports are JSON documents (example below) that must be shareable between citizens but protected from eavesdropping and tampering.
+
+## Team 19
 
 | Number | Name            | User                                                                   | E-mail                                                                            |
 | ------ | --------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
